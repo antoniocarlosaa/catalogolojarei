@@ -139,8 +139,8 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onUpload }) => {
       <div className="w-full max-w-2xl bg-surface border border-white/10 p-8 rounded-[2rem] shadow-2xl overflow-y-auto max-h-[90vh] hide-scrollbar">
         <div className="flex justify-between items-center mb-10">
           <div>
-            <h2 className="font-heading text-gold text-3xl uppercase tracking-[0.1em]">Novo Cadastro</h2>
-            <p className="text-[10px] text-white/30 uppercase tracking-[0.4em] font-bold mt-2">Upload para Nuvem (Supabase)</p>
+            <h2 className="font-heading text-gold text-3xl uppercase tracking-[0.1em]">Novo Cadastro <span className="text-xs text-white/50">v2.0</span></h2>
+            <p className="text-[10px] text-white/30 uppercase tracking-[0.4em] font-bold mt-2">Upload Seguro (UUID Fix)</p>
           </div>
           <button onClick={onClose} className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-full text-white/50 hover:text-white transition-all"><span className="material-symbols-outlined">close</span></button>
         </div>
