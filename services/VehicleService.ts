@@ -130,7 +130,7 @@ class VehicleService {
           has_manual: vehicle.hasManual || false,
           has_spare_key: vehicle.hasSpareKey || false,
           has_revisoes: vehicle.hasRevisoes || false,
-          image_position: vehicle.imagePosition,
+
         }]);
 
       if (error) {
@@ -163,7 +163,7 @@ class VehicleService {
       if (updates.isPromoSemana !== undefined) updateData.is_promo_semana = updates.isPromoSemana;
       if (updates.isPromoMes !== undefined) updateData.is_promo_mes = updates.isPromoMes;
       if (updates.specs !== undefined) updateData.specs = updates.specs;
-      if (updates.imagePosition !== undefined) updateData.image_position = updates.imagePosition;
+
 
       const { error } = await supabase
         .from('vehicles')
