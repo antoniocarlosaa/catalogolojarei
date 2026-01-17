@@ -135,9 +135,11 @@ class VehicleService {
 
       if (error) {
         console.warn('Erro ao salvar no Supabase, mantido apenas local:', error);
+        alert(`Erro de sincronização (Supabase): ${error.message || JSON.stringify(error)}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao conectar com Supabase, mantido apenas local:', error);
+      alert(`Erro de conexão: ${error.message || JSON.stringify(error)}`);
     }
   }
 
@@ -170,9 +172,11 @@ class VehicleService {
 
       if (error) {
         console.warn('Erro ao atualizar no Supabase, mantido local:', error);
+        alert(`Erro ao atualizar (Supabase): ${error.message || JSON.stringify(error)}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao conectar com Supabase, mantido local:', error);
+      alert(`Erro de conexão na atualização: ${error.message || JSON.stringify(error)}`);
     }
   }
 
