@@ -104,8 +104,15 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onUpload }) => {
         }
       }
 
+      const uuidv4 = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+          var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      };
+
       const newVehicle: Vehicle = {
-        id: crypto.randomUUID(), // Melhor gerador de ID
+        id: uuidv4(), // Garante formato UUID v4 compatível com Supabase
         name: name.toUpperCase(),
         price: isNaN(Number(price.replace(/\D/g, ''))) && price.length > 0 ? price : Number(price.replace(/\D/g, '')),
         type,
