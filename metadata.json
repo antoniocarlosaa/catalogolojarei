@@ -1,0 +1,7 @@
+{
+  "name": "Rei das Motos - Luxury Catalog",
+  "description": "A premium luxury vehicle catalog for motorcycles and cars with a sleek dark aesthetic, gold accents, and local media upload capabilities.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

@@ -1,0 +1,759 @@
+import React, { useState, useRef } from 'react';
+import { Vehicle, VehicleType } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+
+interface AdminPanelProps {
+  currentNumbers: string[];
+  currentMapsUrl?: string;
+  currentBackgroundImageUrl?: string;
+  currentBackgroundPosition?: string;
+  currentCardImageFit?: 'cover' | 'contain';
+  vehicles: Vehicle[];
+  onSaveNumbers: (numbers: string[]) => void;
+  onSaveMapsUrl: (url: string) => void;
+  onSaveBackgroundImageUrl: (url: string) => void;
+  onSaveBackgroundPosition: (pos: string) => void;
+  onSaveCardImageFit: (fit: 'cover' | 'contain') => void;
+  onUpdateVehicle: (id: string, updates: Partial<Vehicle>) => void;
+  onDeleteVehicle: (id: string) => void;
+  onUpload: (vehicle: Vehicle) => Promise<void>;
+  onClose: () => void;
+}
+
+const AdminPanel: React.FC<AdminPanelProps> = ({
+  currentNumbers,
+  currentMapsUrl,
+  currentBackgroundImageUrl,
+  currentBackgroundPosition,
+  currentCardImageFit,
+  vehicles,
+  onSaveNumbers,
+  onSaveMapsUrl,
+  onSaveBackgroundImageUrl,
+  onSaveBackgroundPosition,
+  onSaveCardImageFit,
+  onUpdateVehicle,
+  onDeleteVehicle,
+  onUpload,
+  onClose
+}) => {
+  const { user, signOut } = useAuth();
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'inventory' | 'upload' | 'sold'>('whatsapp');
+  const [numbers, setNumbers] = useState<string[]>(
+    Array(10).fill('').map((_, i) => currentNumbers[i] || '')
+  );
+  const [mapsUrl, setMapsUrl] = useState(currentMapsUrl || '');
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState(currentBackgroundImageUrl || '');
+  const [backgroundPos, setBackgroundPos] = useState(currentBackgroundPosition || '50% 50%');
+  const [cardImageFit, setCardImageFit] = useState<'cover' | 'contain'>(currentCardImageFit || 'cover');
+  const [confirmSoldId, setConfirmSoldId] = useState<string | null>(null);
+
+  const [newType, setNewType] = useState<VehicleType>(VehicleType.MOTO);
+  const [newName, setNewName] = useState('');
+  const [newPrice, setNewPrice] = useState('');
+  const [newYear, setNewYear] = useState('');
+  const [newColor, setNewColor] = useState('');
+  const [newKM, setNewKM] = useState('');
+  const [newSpecs, setNewSpecs] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [newDisplacement, setNewDisplacement] = useState('');
+  const [newTransmission, setNewTransmission] = useState('Automático');
+  const [newFuel, setNewFuel] = useState('Gasolina');
+  const [newImagePos, setNewImagePos] = useState('50% 50%');
+  const [isSingleOwner, setIsSingleOwner] = useState(false);
+  const [hasDut, setHasDut] = useState(false);
+  const [hasManual, setHasManual] = useState(false);
+  const [hasSpareKey, setHasSpareKey] = useState(false);
+  const [isPromoSemana, setIsPromoSemana] = useState(false);
+  const [isPromoMes, setIsPromoMes] = useState(false);
+  const [isZeroKm, setIsZeroKm] = useState(false);
+  const [isFeatured, setIsFeatured] = useState(false);
+
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [editSpecs, setEditSpecs] = useState('');
+
+  const formatCurrency = (value: string) => {
+    const val = value.replace(/\D/g, '');
+    return val ? parseInt(val).toLocaleString('pt-BR') : '';
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.7)); // Compress to JPEG 70%
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
+    const files = Array.from(e.target.files || []) as File[];
+    if (files.length === 0) return;
+
+    // Validation: Max 4MB per file to avoid LocalStorage quota issues
+    const maxSize = 4 * 1024 * 1024; // 4MB
+    const oversizedFile = files.find(f => f.size > maxSize);
+    if (oversizedFile) {
+      alert(`A imagem "${oversizedFile.name}" é muito grande (Máx 4MB). Por favor, comprima a imagem.`);
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      let base64Files: string[] = [];
+      if (type === 'image') {
+        base64Files = await Promise.all(files.map(f => compressImage(f)));
+      } else {
+        base64Files = await Promise.all(files.map(f => fileToBase64(f)));
+      }
+
+      if (type === 'image') {
+        if (imagePreviews.length + base64Files.length > 6) {
+          setUploadError("Máximo de 6 fotos permitido.");
+          return;
+        }
+        setImagePreviews(prev => [...prev, ...base64Files]);
+      } else {
+        if (videoPreviews.length + base64Files.length > 3) {
+          setUploadError("Máximo de 3 vídeos permitido.");
+          return;
+        }
+        setVideoPreviews(prev => [...prev, ...base64Files]);
+      }
+    } catch (err) {
+      setUploadError("Erro ao processar arquivo.");
+    } finally {
+      setIsUploading(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const removeMedia = (index: number, type: 'image' | 'video') => {
+    if (type === 'image') setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    else setVideoPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCreateVehicle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName || imagePreviews.length === 0) {
+      setUploadError("Nome e Foto Principal são obrigatórios.");
+      return;
+    }
+
+    const kmValue = Number(newKM.replace(/\D/g, '')) || 0;
+    let kmHighlight = "";
+    if (kmValue < 1) kmHighlight = "KM 0";
+    else if (kmValue >= 1 && kmValue <= 10) kmHighlight = "KM BAIXO";
+
+    const parts = [
+      newYear && `ANO: ${newYear}`,
+      newColor && `COR: ${newColor}`,
+      newType === VehicleType.MOTO && newDisplacement && `${newDisplacement} CC`,
+      newType === VehicleType.CARRO && `${newTransmission} | ${newFuel}`,
+      kmHighlight && `[${kmHighlight}]`,
+      `KM: ${kmValue.toLocaleString('pt-BR')}`,
+      newSpecs
+    ].filter(Boolean);
+
+    const newVehicle: Vehicle = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: newName.toUpperCase(),
+      price: isNaN(Number(newPrice.replace(/\D/g, ''))) && newPrice.length > 0 ? newPrice : Number(newPrice.replace(/\D/g, '')),
+      type: newType,
+      imageUrl: imagePreviews[0],
+      images: imagePreviews,
+      videoUrl: videoPreviews.length > 0 ? videoPreviews[0] : undefined,
+      videos: videoPreviews,
+      isPromoSemana,
+      isPromoMes,
+      isZeroKm,
+      isFeatured,
+      specs: parts.join(" | "),
+      km: kmValue,
+      year: newYear,
+      hasSpareKey,
+      hasRevisoes: false,
+      imagePosition: newImagePos,
+      isSold: false
+    };
+
+    setIsUploading(true);
+    await onUpload(newVehicle);
+    setIsUploading(false);
+
+    alert('Veículo publicado com sucesso!');
+    setImagePreviews([]); setVideoPreviews([]); setNewName(''); setNewPrice(''); setNewKM(''); setNewColor(''); setNewYear('');
+    setNewImagePos('50% 50%');
+    setIsFeatured(false); setIsPromoSemana(false);
+    setActiveTab('inventory');
+  };
+
+  const startEditing = (vehicle: Vehicle) => {
+    setEditingId(vehicle.id);
+    setEditName(vehicle.name);
+    setEditPrice(typeof vehicle.price === 'number' ? vehicle.price.toLocaleString('pt-BR') : vehicle.price.toString());
+    setEditSpecs(vehicle.specs || '');
+  };
+
+  const saveInlineEdit = (id: string) => {
+    const formattedPrice = isNaN(Number(editPrice.replace(/\D/g, ''))) && editPrice.length > 0
+      ? editPrice
+      : Number(editPrice.replace(/\D/g, ''));
+    onUpdateVehicle(id, { name: editName.toUpperCase(), price: formattedPrice, specs: editSpecs });
+    setEditingId(null);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/95 backdrop-blur-md">
+      <div className="w-full max-w-5xl bg-surface border border-white/10 p-6 sm:p-8 rounded-[2rem] shadow-2xl max-h-[90vh] flex flex-col relative overflow-hidden">
+        <div className="flex justify-between items-center mb-6 shrink-0">
+          <div>
+            <h2 className="font-heading text-gold text-2xl sm:text-3xl tracking-wider leading-none uppercase">Painel ADM</h2>
+            <p className="text-[9px] text-white/30 uppercase tracking-[0.4em] font-bold mt-2 ml-1">Sistema de Gestão Rei das Motos</p>
+          </div>
+          <button onClick={onClose} className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-white/50 hover:bg-gold hover:text-black hover:rotate-90 transition-all duration-300">
+            <span className="material-symbols-outlined text-xl">close</span>
+          </button>
+        </div>
+
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-2 shrink-0 no-scrollbar">
+          {[
+            { id: 'whatsapp', icon: 'settings', label: 'Configurações' },
+            { id: 'inventory', icon: 'garage_home', label: 'Estoque' },
+            { id: 'upload', icon: 'add_circle', label: 'Novo Veículo' },
+            { id: 'sold', icon: 'sell', label: 'Vendidos' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-3 px-6 py-4 rounded-2xl transition-all whitespace-nowrap ${activeTab === tab.id
+                ? 'bg-gold text-black shadow-lg shadow-gold/20'
+                : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white'
+                }`}
+            >
+              <span className="material-symbols-outlined text-lg">{tab.icon}</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">{tab.label}</span>
+            </button>
+          ))}
+          <button onClick={signOut} className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all ml-auto whitespace-nowrap">
+            <span className="material-symbols-outlined text-lg">logout</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Sair</span>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+          {activeTab === 'whatsapp' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
+                <div>
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">location_on</span> Localização da Loja
+                  </h3>
+                  <input value={mapsUrl} onChange={(e) => setMapsUrl(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-2xl focus:border-gold outline-none" placeholder="Link Google Maps..." />
+                </div>
+
+                <div>
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">wallpaper</span> Plano de Fundo (Home)
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="bg-upload"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            try {
+                              const base64 = await fileToBase64(file);
+                              setBackgroundImageUrl(base64);
+                            } catch (err) {
+                              alert("Erro ao processar imagem");
+                            }
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="bg-upload"
+                        className="w-full flex items-center justify-center gap-2 bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-2xl cursor-pointer hover:bg-white/10 transition-all group"
+                      >
+                        <span className="material-symbols-outlined group-hover:scale-110 transition-transform">upload_file</span>
+                        {backgroundImageUrl ? 'Trocar Imagem' : 'Carregar do Dispositivo'}
+                      </label>
+                    </div>
+
+                    {backgroundImageUrl && (
+                      <div className="space-y-3">
+                        <div className="relative w-full h-48 rounded-xl overflow-hidden border border-white/10 group bg-black/50">
+                          <img
+                            src={backgroundImageUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover opacity-80 transition-all"
+                            style={{ objectPosition: backgroundPos }}
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span className="text-[10px] text-white/50 bg-black/50 px-3 py-1 rounded-full uppercase tracking-widest">Preview</span>
+                          </div>
+                          <button
+                            onClick={() => setBackgroundImageUrl('')}
+                            className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                            title="Remover Imagem"
+                          >
+                            <span className="material-symbols-outlined text-sm">close</span>
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-1 block">Posição Horizontal</label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={parseInt(backgroundPos.split(' ')[0])}
+                              onChange={(e) => setBackgroundPos(`${e.target.value}% ${backgroundPos.split(' ')[1]}`)}
+                              className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <div className="text-right text-[9px] text-white/50 mt-1">{backgroundPos.split(' ')[0]}</div>
+                          </div>
+                          <div>
+                            <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-1 block">Posição Vertical</label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={parseInt(backgroundPos.split(' ')[1])}
+                              onChange={(e) => setBackgroundPos(`${backgroundPos.split(' ')[0]} ${e.target.value}%`)}
+                              className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <div className="text-right text-[9px] text-white/50 mt-1">{backgroundPos.split(' ')[1]}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">image</span> Estilo das Fotos nos Cards
+                  </h3>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setCardImageFit('cover')}
+                      className={`flex-1 py-3 px-4 rounded-xl border transition-all flex items-center justify-center gap-2 ${cardImageFit === 'cover' ? 'bg-gold text-black border-gold' : 'bg-surface/5 text-white border-white/10 hover:border-gold/50'}`}
+                    >
+                      <span className="material-symbols-outlined">crop</span>
+                      <div className="text-left">
+                        <div className="text-[10px] font-bold uppercase">Preencher (Padrão)</div>
+                        <div className="text-[8px] opacity-70">Corta bordas para alinhar</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setCardImageFit('contain')}
+                      className={`flex-1 py-3 px-4 rounded-xl border transition-all flex items-center justify-center gap-2 ${cardImageFit === 'contain' ? 'bg-gold text-black border-gold' : 'bg-surface/5 text-white border-white/10 hover:border-gold/50'}`}
+                    >
+                      <span className="material-symbols-outlined">aspect_ratio</span>
+                      <div className="text-left">
+                        <div className="text-[10px] font-bold uppercase">Foto Completa</div>
+                        <div className="text-[8px] opacity-70">Sem cortes, pode sobrar fundo</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">call</span> WhatsApps de Atendimento
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {numbers.map((n, i) => (
+                      <input key={i} value={n} onChange={(e) => {
+                        const next = [...numbers];
+                        next[i] = e.target.value.replace(/\D/g, '');
+                        setNumbers(next);
+                      }} className="bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-xl outline-none focus:border-gold" placeholder={`WhatsApp ${i + 1}...`} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  onSaveNumbers(numbers.filter(n => n));
+                  onSaveMapsUrl(mapsUrl);
+                  onSaveBackgroundImageUrl(backgroundImageUrl);
+                  onSaveBackgroundPosition(backgroundPos);
+                  onSaveCardImageFit(cardImageFit);
+                  alert('Salvo!');
+                }}
+                className="w-full py-5 bg-gold text-black font-heading text-[11px] tracking-[0.3em] rounded-full shadow-xl hover:brightness-110 active:scale-95 transition-all"
+              >
+                SALVAR TUDO
+              </button>
+            </div>
+          )}
+
+          {
+            activeTab === 'upload' && (
+              <form onSubmit={handleCreateVehicle} className="space-y-8 animate-in fade-in duration-300 pb-10">
+                <div className="flex p-1.5 bg-white/5 rounded-full border border-white/5">
+                  <button type="button" onClick={() => setNewType(VehicleType.MOTO)} className={`flex-1 py-4 rounded-full flex items-center justify-center gap-3 transition-all ${newType === VehicleType.MOTO ? 'bg-gold text-black shadow-lg' : 'text-white/40 hover:text-white'}`}>
+                    <span className="material-symbols-outlined">motorcycle</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest">MOTO</span>
+                  </button>
+                  <button type="button" onClick={() => setNewType(VehicleType.CARRO)} className={`flex-1 py-4 rounded-full flex items-center justify-center gap-3 transition-all ${newType === VehicleType.CARRO ? 'bg-gold text-black shadow-lg' : 'text-white/40 hover:text-white'}`}>
+                    <span className="material-symbols-outlined">directions_car</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest">CARRO</span>
+                  </button>
+                </div>
+
+                {/* Checkbox 0 KM */}
+                <div className="flex items-center gap-3 p-4 bg-gold/10 border border-gold/20 rounded-2xl">
+                  <input
+                    type="checkbox"
+                    id="isZeroKm"
+                    checked={isZeroKm}
+                    onChange={(e) => {
+                      setIsZeroKm(e.target.checked);
+                      if (e.target.checked) {
+                        setNewKM('0');
+                      }
+                    }}
+                    className="w-5 h-5 rounded border-gold/30 text-gold focus:ring-gold"
+                  />
+                  <label htmlFor="isZeroKm" className="text-sm font-bold text-gold uppercase tracking-wider cursor-pointer">
+                    ✨ Veículo 0 KM
+                  </label>
+                </div>
+
+                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-[10px] text-gold font-bold uppercase tracking-widest mb-4">Fotos do Veículo (Máx 6)</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+                        {imagePreviews.map((url, i) => (
+                          <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-black border border-white/10 group">
+                            <img src={url} className="w-full h-full object-cover" />
+                            <button type="button" onClick={() => removeMedia(i, 'image')} className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded-full"><span className="material-symbols-outlined text-[14px]">close</span></button>
+                            {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-gold/90 text-black text-[7px] font-bold text-center py-0.5 uppercase">Capa</div>}
+                          </div>
+                        ))}
+                        {imagePreviews.length < 6 && (
+                          <button type="button" disabled={isUploading} onClick={() => imageInputRef.current?.click()} className={`aspect-square bg-surface-light border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'text-white/20 hover:border-gold hover:text-gold'}`}>
+                            {isUploading ? <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">add_a_photo</span>}
+                          </button>
+                        )}
+                      </div>
+                      <input type="file" ref={imageInputRef} className="hidden" accept="image/*" multiple onChange={(e) => handleFileChange(e, 'image')} />
+                    </div>
+
+                    {imagePreviews.length > 0 && (
+                      <div className="bg-white/5 p-4 rounded-xl border border-white/5 mb-6">
+                        <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-3 block">Ajustar Posição da Foto Principal (Capa)</label>
+                        <div className="flex gap-4 items-center">
+                          <div className="w-20 h-20 rounded-lg overflow-hidden relative border border-white/20">
+                            <img src={imagePreviews[0]} className="w-full h-full object-cover" style={{ objectPosition: newImagePos }} />
+                          </div>
+                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <div className="flex justify-between mb-1">
+                                <span className="text-[8px] text-white/50 uppercase">Horizontal</span>
+                                <span className="text-[8px] text-white/50">{newImagePos.split(' ')[0]}</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={parseInt(newImagePos.split(' ')[0])}
+                                onChange={(e) => setNewImagePos(`${e.target.value}% ${newImagePos.split(' ')[1]}`)}
+                                className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                              />
+                            </div>
+                            <div>
+                              <div className="flex justify-between mb-1">
+                                <span className="text-[8px] text-white/50 uppercase">Vertical</span>
+                                <span className="text-[8px] text-white/50">{newImagePos.split(' ')[1]}</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={parseInt(newImagePos.split(' ')[1])}
+                                onChange={(e) => setNewImagePos(`${newImagePos.split(' ')[0]} ${e.target.value}%`)}
+                                className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <h4 className="text-[10px] text-gold font-bold uppercase tracking-widest mb-4">Vídeos (Opcional - Máx 3)</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {videoPreviews.map((url, i) => (
+                          <div key={i} className="relative aspect-video rounded-xl overflow-hidden bg-black border border-white/10">
+                            <video src={url} className="w-full h-full object-cover" muted />
+                            <button type="button" onClick={() => removeMedia(i, 'video')} className="absolute top-2 right-2 bg-black/70 text-white p-1.5 rounded-full"><span className="material-symbols-outlined">close</span></button>
+                          </div>
+                        ))}
+                        {videoPreviews.length < 3 && (
+                          <button type="button" disabled={isUploading} onClick={() => videoInputRef.current?.click()} className={`aspect-video bg-surface-light border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'text-white/20 hover:border-gold hover:text-gold'}`}>
+                            {isUploading ? <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">videocam</span>}
+                          </button>
+                        )}
+                      </div>
+                      <input type="file" ref={videoInputRef} className="hidden" accept="video/*" multiple onChange={(e) => handleFileChange(e, 'video')} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="md:col-span-2">
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Modelo Comercial</label>
+                      <input value={newName} onChange={e => setNewName(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none uppercase" placeholder="Ex: BMW S1000RR M PACK" />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">KM Atual</label>
+                      <input value={newKM} onChange={e => setNewKM(e.target.value)} disabled={isZeroKm} className={`w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none ${isZeroKm ? 'opacity-50 cursor-not-allowed' : ''}`} placeholder={isZeroKm ? "0 KM" : "Ex: 500"} />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Preço (R$)</label>
+                      <input
+                        value={newPrice}
+                        onChange={e => setNewPrice(formatCurrency(e.target.value))}
+                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none"
+                        placeholder="125.000"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Ano / Modelo</label>
+                      <input value={newYear} onChange={e => setNewYear(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="2024" />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cor</label>
+                      <input value={newColor} onChange={e => setNewColor(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none uppercase" placeholder="PRETO" />
+                    </div>
+                    {newType === VehicleType.MOTO ? (
+                      <div>
+                        <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cilindradas (CC)</label>
+                        <input value={newDisplacement} onChange={e => setNewDisplacement(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="1000" />
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Câmbio</label>
+                          <select value={newTransmission} onChange={e => setNewTransmission(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none">
+                            <option value="Automático">Automático</option>
+                            <option value="Manual">Manual</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-white/5">
+                    {[
+                      { label: 'Único Dono', state: isSingleOwner, set: setIsSingleOwner, tooltip: 'Apenas um proprietário.' },
+                      { label: 'DUT na Mão', state: hasDut, set: setHasDut, tooltip: 'Documentação pronta.' },
+                      { label: 'Manual', state: hasManual, set: setHasManual, tooltip: 'Acompanha manual.' },
+                      { label: 'Chave Reserva', state: hasSpareKey, set: setHasSpareKey, tooltip: 'Possui chave reserva.' },
+                      { label: 'Promoção', state: isPromoSemana, set: setIsPromoSemana, tooltip: 'Marcar com tag de promoção.' },
+                      { label: 'Destaque', state: isFeatured, set: setIsFeatured, tooltip: 'Exibir no topo ou carrossel.' },
+                    ].map(item => (
+                      <div key={item.label} className="relative flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 cursor-pointer hover:border-gold/30 transition-all group/tooltip">
+                        <input type="checkbox" id={`check-${item.label}`} checked={item.state} onChange={e => item.set(e.target.checked)} className="accent-gold w-4 h-4 cursor-pointer" />
+                        <label htmlFor={`check-${item.label}`} className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer">
+                          <span className="text-[10px] text-white/60 uppercase font-bold tracking-widest truncate">{item.label}</span>
+                        </label>
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 p-4 bg-black/95 border border-gold/20 rounded-2xl text-[9px] text-white/70 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50">
+                          {item.tooltip}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button type="submit" disabled={isUploading} className={`w-full py-6 bg-gold text-black text-[13px] font-heading tracking-[0.3em] rounded-full shadow-2xl transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gold-light active:scale-[0.98]'}`}>
+                  {isUploading ? 'PROCESSANDO MÍDIA...' : 'PUBLICAR NO CATÁLOGO'}
+                </button>
+              </form>
+            )
+          }
+
+          {
+            activeTab === 'inventory' && (
+              <div className="space-y-4 pb-10">
+                {vehicles.filter(v => !v.isSold).map(v => (
+                  <div key={v.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 flex items-start gap-4 group hover:border-white/20 transition-all">
+                    <img src={v.imageUrl} className="w-20 h-20 rounded-2xl object-cover border border-white/5 shrink-0 mt-1" />
+                    <div className="flex-1 min-w-0">
+                      {editingId === v.id ? (
+                        <div className="flex flex-col gap-2">
+                          <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full bg-surface-light border border-gold/50 text-white text-[11px] px-3 py-1.5 rounded-lg focus:outline-none uppercase font-heading tracking-wider" />
+                          <input
+                            value={editPrice}
+                            onChange={(e) => setEditPrice(formatCurrency(e.target.value))}
+                            className="w-full bg-surface-light border border-gold/50 text-gold text-[10px] px-3 py-1.5 rounded-lg focus:outline-none font-bold"
+                          />
+                          <input value={editSpecs} onChange={e => setEditSpecs(e.target.value)} className="w-full bg-surface-light border border-white/10 text-white text-[10px] px-3 py-1.5 rounded-lg focus:outline-none" placeholder="Specs" />
+                        </div>
+                      ) : (
+                        <div className="cursor-pointer group/info" onClick={() => startEditing(v)}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-white text-xs font-heading tracking-wider truncate uppercase group-hover/info:text-gold transition-colors">{v.name}</h4>
+                            {v.isFeatured && <span className="text-[8px] bg-gold text-black px-1.5 rounded font-bold uppercase">Destaque</span>}
+                          </div>
+                          <p className="text-gold text-[10px] font-bold">R$ {typeof v.price === 'number' ? v.price.toLocaleString('pt-BR') : v.price}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-center gap-2 pt-1 shrink-0">
+                      {editingId === v.id ? (
+                        <>
+                          <button onClick={() => saveInlineEdit(v.id)} className="w-10 h-10 flex items-center justify-center bg-gold text-black rounded-full shadow-lg hover:scale-110 transition-all"><span className="material-symbols-outlined text-xl">check</span></button>
+                          <button onClick={() => setEditingId(null)} className="w-10 h-10 flex items-center justify-center bg-white/10 text-white/50 rounded-full hover:bg-white/20 transition-all"><span className="material-symbols-outlined text-xl">close</span></button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => startEditing(v)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-blue-400 hover:bg-blue-400/20 transition-all" title="Editar">
+                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                          </button>
+                          <button onClick={() => onUpdateVehicle(v.id, { isFeatured: !v.isFeatured })} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isFeatured ? 'bg-gold/20 text-gold' : 'bg-white/5 text-white/20 hover:text-gold hover:bg-gold/10'}`} title={v.isFeatured ? "Remover Destaque" : "Destacar Veículo"}>
+                            <span className="material-symbols-outlined text-[18px]">star</span>
+                          </button>
+                          <button onClick={() => setConfirmSoldId(v.id)} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isSold ? 'bg-green-500/20 text-green-500' : 'bg-white/5 text-yellow-500 hover:bg-yellow-500/20'}`} title={v.isSold ? "Marcar como Disponível" : "Marcar como Vendido"}>
+                            <span className="material-symbols-outlined text-[18px]">{v.isSold ? 'check_circle' : 'sell'}</span>
+                          </button>
+                          <button onClick={() => onDeleteVehicle(v.id)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-red-500 hover:bg-red-500/20 transition-all" title="Excluir">
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {vehicles.filter(v => !v.isSold).length === 0 && (
+                  <div className="text-center py-12 text-white/20 text-xs font-bold uppercase tracking-widest bg-black/20 rounded-xl">
+                    Nenhum veículo em estoque
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          {
+            activeTab === 'sold' && (
+              <div className="space-y-4 pb-10">
+                {vehicles.filter(v => v.isSold).map(v => (
+                  <div key={v.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 flex items-start gap-4 grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition-all">
+                    <img src={v.imageUrl} className="w-16 h-16 rounded-2xl object-cover border border-white/5 shrink-0 mt-1" />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white/50 text-xs font-heading tracking-wider truncate uppercase line-through">{v.name}</h4>
+                      <span className="text-[9px] text-green-500/80 uppercase font-bold tracking-wider block mt-1">VENDIDO</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-2 pt-1 shrink-0">
+                      <button onClick={() => setConfirmSoldId(v.id)} className="w-8 h-8 flex items-center justify-center rounded-full bg-green-500/20 text-green-500 transition-all" title="Marcar como Disponível">
+                        <span className="material-symbols-outlined text-[18px]">undo</span>
+                      </button>
+                      <button onClick={() => onDeleteVehicle(v.id)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-red-500 hover:bg-red-500/20 transition-all" title="Excluir do Histórico">
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {vehicles.filter(v => v.isSold).length === 0 && (
+                  <div className="text-center py-12 text-white/20 text-xs font-bold uppercase tracking-widest bg-black/20 rounded-xl">
+                    Nenhum veículo vendido
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+
+
+          {confirmSoldId && (
+            <div className="absolute inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-8">
+              <div className="bg-surface border border-white/10 p-10 rounded-[2.5rem] max-w-sm w-full text-center space-y-8 shadow-3xl">
+                <span className="material-symbols-outlined text-red-500 text-5xl">shopping_cart_checkout</span>
+                <h3 className="text-white font-heading text-xl uppercase tracking-wider">Confirmar Alteração</h3>
+                <p className="text-white/50 text-xs">
+                  {vehicles.find(v => v.id === confirmSoldId)?.isSold
+                    ? "Deseja marcar este veículo como DISPONÍVEL novamente?"
+                    : "Deseja marcar este veículo como VENDIDO? Ele sairá da vitrine principal."}
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => {
+                      const v = vehicles.find(v => v.id === confirmSoldId);
+                      if (v) onUpdateVehicle(confirmSoldId, { isSold: !v.isSold });
+                      setConfirmSoldId(null);
+                    }}
+                    className="w-full py-5 bg-gold text-black text-[11px] font-bold uppercase tracking-widest rounded-full hover:brightness-110"
+                  >
+                    Sim, confirmar
+                  </button>
+                  <button onClick={() => setConfirmSoldId(null)} className="w-full py-5 bg-white/5 text-white/50 text-[11px] font-bold uppercase tracking-widest rounded-full hover:bg-white/10 hover:text-white transition-all">Cancelar</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminPanel;
