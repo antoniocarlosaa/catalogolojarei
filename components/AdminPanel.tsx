@@ -1,6 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Vehicle, VehicleType } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { logger, AccessLog, AuditLog } from '../services/LogService';
+import { format } from 'date-fns';
 
 interface AdminPanelProps {
   currentNumbers: string[];
@@ -38,7 +40,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   onClose
 }) => {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'inventory' | 'upload' | 'sold'>('whatsapp');
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'inventory' | 'upload' | 'sold' | 'logs'>('whatsapp');
   const [numbers, setNumbers] = useState<string[]>(
     Array(10).fill('').map((_, i) => currentNumbers[i] || '')
   );
@@ -48,12 +50,35 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [cardImageFit, setCardImageFit] = useState<'cover' | 'contain'>(currentCardImageFit || 'cover');
   const [confirmSoldId, setConfirmSoldId] = useState<string | null>(null);
 
+  // States para Logs
+  const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+
   // Fechar o painel automaticamente se o usuário não estiver logado (Logout)
   React.useEffect(() => {
     if (!user) {
       onClose();
     }
   }, [user, onClose]);
+
+  // Carregar logs quando mudar para a aba
+  useEffect(() => {
+    if (activeTab === 'logs') {
+      const loadLogs = async () => {
+        try {
+          const [acc, aud] = await Promise.all([
+            logger.getAccessLogs(),
+            logger.getAuditLogs()
+          ]);
+          setAccessLogs(acc);
+          setAuditLogs(aud);
+        } catch (err) {
+          console.error("Erro ao carregar logs", err);
+        }
+      };
+      loadLogs();
+    }
+  }, [activeTab]);
 
   const [newType, setNewType] = useState<VehicleType>(VehicleType.MOTO);
   const [newName, setNewName] = useState('');
@@ -254,6 +279,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
       await onUpload(newVehicle);
 
+      // LOG ACTION
+      if (user?.email) {
+        logger.logAction(user.email, 'CRIAR', newVehicle.name, `Preço: ${newVehicle.price}`);
+      }
+
       alert('Veículo publicado com sucesso!');
       // Limpar Estado
       setImagePreviews([]); setImageFiles([]);
@@ -305,6 +335,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             { id: 'inventory', icon: 'garage_home', label: 'Estoque' },
             { id: 'upload', icon: 'add_circle', label: 'Novo Veículo' },
             { id: 'sold', icon: 'sell', label: 'Vendidos' },
+            { id: 'logs', icon: 'monitoring', label: 'Monitoramento' }, // Nova Tab
           ].map(tab => (
             <button
               key={tab.id}
@@ -751,6 +782,95 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     Nenhum veículo vendido
                   </div>
                 )}
+              </div>
+            )
+          }
+
+          {
+            activeTab === 'logs' && (
+              <div className="space-y-8 animate-in fade-in duration-300">
+                {/* Seção de Auditoria (Admin Actions) */}
+                <div className="space-y-4">
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-[0.4em] border-l-2 border-gold pl-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm">security</span> Auditoria (Suas Ações)
+                  </h3>
+                  <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
+                        <tr>
+                          <th className="p-4">Data</th>
+                          <th className="p-4">Ação</th>
+                          <th className="p-4">Alvo</th>
+                          <th className="p-4 hidden sm:table-cell">Detalhes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[10px] text-white/70">
+                        {auditLogs.map(log => (
+                          <tr key={log.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td className="p-4 whitespace-nowrap opacity-60">
+                              {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR') : '-'}
+                            </td>
+                            <td className="p-4">
+                              <span className={`px-2 py-1 rounded text-[8px] font-bold uppercase ${log.action_type === 'CRIAR' ? 'bg-green-500/20 text-green-400' :
+                                  log.action_type === 'EXCLUIR' ? 'bg-red-500/20 text-red-400' :
+                                    'bg-blue-500/20 text-blue-400'
+                                }`}>
+                                {log.action_type}
+                              </span>
+                            </td>
+                            <td className="p-4 font-bold text-white">{log.target}</td>
+                            <td className="p-4 hidden sm:table-cell opacity-60 truncate max-w-[200px]">{log.details}</td>
+                          </tr>
+                        ))}
+                        {auditLogs.length === 0 && (
+                          <tr><td colSpan={4} className="p-8 text-center text-white/20">Nenhuma ação registrada.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Seção de Acessos (Visitas) */}
+                <div className="space-y-4">
+                  <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.4em] border-l-2 border-blue-400 pl-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm">public</span> Visitas Recentes
+                  </h3>
+                  <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
+                        <tr>
+                          <th className="p-4">Data</th>
+                          <th className="p-4">Local</th>
+                          <th className="p-4">Dispositivo</th>
+                          <th className="p-4 hidden sm:table-cell">IP</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[10px] text-white/70">
+                        {accessLogs.map(log => (
+                          <tr key={log.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td className="p-4 whitespace-nowrap opacity-60">
+                              {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR') : '-'}
+                            </td>
+                            <td className="p-4 font-bold text-white">{log.location}</td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-sm opacity-50">
+                                  {log.device_type === 'Mobile' ? 'smartphone' : 'computer'}
+                                </span>
+                                <span>{log.device_type}</span>
+                              </div>
+                              <div className="text-[8px] opacity-40 hidden sm:block truncate max-w-[150px]">{log.device_info}</div>
+                            </td>
+                            <td className="p-4 hidden sm:table-cell font-mono opacity-50">{log.ip}</td>
+                          </tr>
+                        ))}
+                        {accessLogs.length === 0 && (
+                          <tr><td colSpan={4} className="p-8 text-center text-white/20">Nenhum acesso registrado.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )
           }

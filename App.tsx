@@ -9,6 +9,7 @@ import AdminPanel from './components/AdminPanel';
 import LoginModal from './components/LoginModal';
 import { db } from './services/VehicleService';
 import { useAuth } from './contexts/AuthContext';
+import { logger } from './services/LogService'; // Import logger
 
 const App: React.FC = () => {
   const { user } = useAuth();
@@ -20,6 +21,11 @@ const App: React.FC = () => {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Registrar Visita (apenas uma vez na montagem)
+  useEffect(() => {
+    logger.logVisit();
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
