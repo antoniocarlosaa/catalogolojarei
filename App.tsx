@@ -72,8 +72,9 @@ const App: React.FC = () => {
 
   const destaques = useMemo(() => filteredVehicles.filter(v => v.isFeatured && !v.isSold), [filteredVehicles]);
   const promoSemana = useMemo(() => filteredVehicles.filter(v => v.isPromoSemana && !v.isSold && !v.isFeatured), [filteredVehicles]);
-  const motosEstoque = useMemo(() => filteredVehicles.filter(v => v.type === VehicleType.MOTO && !v.isSold && !v.isPromoSemana && !v.isFeatured), [filteredVehicles]);
-  const carrosEstoque = useMemo(() => filteredVehicles.filter(v => v.type === VehicleType.CARRO && !v.isSold && !v.isPromoSemana && !v.isFeatured), [filteredVehicles]);
+  // CORREÇÃO: Veículos continuam no estoque mesmo se forem destaque ou promo
+  const motosEstoque = useMemo(() => filteredVehicles.filter(v => v.type === VehicleType.MOTO && !v.isSold), [filteredVehicles]);
+  const carrosEstoque = useMemo(() => filteredVehicles.filter(v => v.type === VehicleType.CARRO && !v.isSold), [filteredVehicles]);
 
   const handleInterest = (vehicle: Vehicle) => {
     if (settings.whatsappNumbers.length === 0) {
@@ -179,7 +180,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1 pb-32 max-w-[1400px] mx-auto w-full px-6">
+      <main className="flex-1 pb-48 max-w-[1400px] mx-auto w-full px-6">
 
         {/* LAYOUT PRINCIPAL - DESTAQUES + PROMOÇÕES LATERAL */}
         {(destaques.length > 0 || promoSemana.length > 0) && (filter === 'TUDO') && (

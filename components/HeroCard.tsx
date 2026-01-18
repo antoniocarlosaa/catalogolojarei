@@ -26,7 +26,7 @@ const HeroCard: React.FC<HeroCardProps> = ({ vehicle, onInterest }) => {
                         <img
                             src={vehicle.imageUrl}
                             onError={() => setImageError(true)}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover object-top"
                             loading="lazy"
                             alt={vehicle.name}
                         />

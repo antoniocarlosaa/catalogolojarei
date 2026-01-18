@@ -35,6 +35,7 @@ export interface Vehicle {
   transmission?: string; // For cars
   fuel?: string; // For cars
   motor?: string; // Motor do carro (ex: 1.0, 2.0 Turbo)
+  plate_last3?: string; // Últimos 3 dígitos da placa
 }
 
 export type CategoryFilter = 'TUDO' | 'MOTOS' | 'CARROS' | 'PROMOÇÕES';

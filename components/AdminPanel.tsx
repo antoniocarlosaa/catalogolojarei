@@ -119,6 +119,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [newType, setNewType] = useState<VehicleType>(VehicleType.MOTO);
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
+  const [newPlateLast3, setNewPlateLast3] = useState(''); // Estado para placa
   const [newYear, setNewYear] = useState('');
   const [newColor, setNewColor] = useState('');
   const [newKM, setNewKM] = useState('');
@@ -296,6 +297,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         specs: parts.join(" | "),
         km: kmValue,
         year: newYear,
+        plate_last3: newPlateLast3, // Adicionando placa (fixed duplicates)
         hasSpareKey,
         hasRevisoes: false,
         imagePosition: newImagePos,
@@ -314,6 +316,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setImagePreviews([]); setImageFiles([]);
       setVideoPreviews([]); setVideoFiles([]);
       setNewName(''); setNewPrice(''); setNewKM(''); setNewColor(''); setNewYear('');
+      setNewPlateLast3(''); // Limpar placa
       setNewImagePos('50% 50%');
       setIsFeatured(false); setIsPromoSemana(false);
       setActiveTab('inventory');
@@ -706,6 +709,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         </div>
                       </>
                     )}
+                    <div>
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">COD3 (Final Placa)</label>
+                      <input
+                        value={newPlateLast3}
+                        onChange={(e) => setNewPlateLast3(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none font-mono tracking-widest text-center"
+                        placeholder="000"
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-white/5">
@@ -758,6 +770,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <div className="cursor-pointer group/info" onClick={() => startEditing(v)}>
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="text-white text-xs font-heading tracking-wider truncate uppercase group-hover/info:text-gold transition-colors">{v.name}</h4>
+                            {v.plate_last3 && <span className="text-[8px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded font-mono border border-white/5">{v.plate_last3}</span>}
                             {v.isFeatured && <span className="text-[8px] bg-gold text-black px-1.5 rounded font-bold uppercase">Destaque</span>}
                           </div>
                           <p className="text-gold text-[10px] font-bold">R$ {typeof v.price === 'number' ? v.price.toLocaleString('pt-BR') : v.price}</p>
