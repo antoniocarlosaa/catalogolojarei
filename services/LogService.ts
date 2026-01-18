@@ -30,8 +30,18 @@ class LogService {
 
             const logData: AccessLog = {
                 ip: data.ip || 'Desconhecido',
-                location: `${data.city || 'Desconhecido'}, ${data.region_code || ''} - ${data.country_name || ''}`,
-                device_info: `${navigator.platform} | ${navigator.userAgent}`,
+                location: `${data.city || ''}, ${data.region_code || ''} - ${data.country_name || ''}`,
+                // Salvando um JSON completo no campo de texto para não precisar alterar o banco agora
+                device_info: JSON.stringify({
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    screen: `${window.screen.width}x${window.screen.height}`,
+                    language: navigator.language,
+                    isp: data.org || data.asn || 'Desconhecido',
+                    timezone: data.timezone,
+                    lat_long: `${data.latitude}, ${data.longitude}`,
+                    connection: (navigator as any).connection ? (navigator as any).connection.effectiveType : 'unknown'
+                }),
                 device_type: isMobile ? 'Mobile' : 'Desktop'
             };
 
