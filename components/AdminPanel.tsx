@@ -48,6 +48,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [cardImageFit, setCardImageFit] = useState<'cover' | 'contain'>(currentCardImageFit || 'cover');
   const [confirmSoldId, setConfirmSoldId] = useState<string | null>(null);
 
+  // Fechar o painel automaticamente se o usuário não estiver logado (Logout)
+  React.useEffect(() => {
+    if (!user) {
+      onClose();
+    }
+  }, [user, onClose]);
+
   const [newType, setNewType] = useState<VehicleType>(VehicleType.MOTO);
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
