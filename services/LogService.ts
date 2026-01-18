@@ -26,21 +26,21 @@ class LogService {
             const response = await fetch('https://ipapi.co/json/');
             const data = await response.json();
 
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isMobile = typeof navigator !== 'undefined' ? /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) : false;
 
             const logData: AccessLog = {
                 ip: data.ip || 'Desconhecido',
                 location: `${data.city || ''}, ${data.region_code || ''} - ${data.country_name || ''}`,
                 // Salvando um JSON completo no campo de texto para não precisar alterar o banco agora
                 device_info: JSON.stringify({
-                    userAgent: navigator.userAgent,
-                    platform: navigator.platform,
-                    screen: `${window.screen.width}x${window.screen.height}`,
-                    language: navigator.language,
+                    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
+                    platform: typeof navigator !== 'undefined' ? navigator.platform : 'Unknown',
+                    screen: typeof window !== 'undefined' ? `${window.screen.width}x${window.screen.height}` : 'Unknown',
+                    language: typeof navigator !== 'undefined' ? navigator.language : 'Unknown',
                     isp: data.org || data.asn || 'Desconhecido',
                     timezone: data.timezone,
                     lat_long: `${data.latitude}, ${data.longitude}`,
-                    connection: (navigator as any).connection ? (navigator as any).connection.effectiveType : 'unknown'
+                    connection: (typeof navigator !== 'undefined' && (navigator as any).connection) ? (navigator as any).connection.effectiveType : 'unknown'
                 }),
                 device_type: isMobile ? 'Mobile' : 'Desktop'
             };

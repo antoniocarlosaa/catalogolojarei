@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Vehicle, VehicleType } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { logger, AccessLog, AuditLog } from '../services/LogService';
-import { format } from 'date-fns';
+
 
 interface AdminPanelProps {
   currentNumbers: string[];
@@ -366,31 +366,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-          {activeTab === 'whatsapp' && (
-            // ... (keep existing whatsapp tab content if needed, but we are replacing the render map block so be careful)
-            // Wait, I replaced the map block. I need to keep the content below the map block intact.
-            // THIS REPLACEMENT STRATEGY IS RISKY for huge chunks. Let's target smaller or verify content.
-            // The StartLine/EndLine includes the map and the signOut. 
-            // I will return the existing map for standard tabs, BUT remove 'logs' from the array, 
-            // and add it as a standalone discreet button.
 
-            // ... existing whatsapp tab start ...
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
-  // ... (Wait, I cannot match the content inside 'whatsapp' tab easily. Let's adjust the target)
-
-                // BETTER STRATEGY: Update the Tabs Array to REMOVE 'logs', and add a separate button.
-                // And Update the Table Row to have onClick.
-                // Let's do it in steps.
-
-                // STEP 1: Update Tabs Navigation (Remove Logs from main array, add standalone button)
-                // STEP 2: Update Table Rows (onClick)
-                // STEP 3: Add Modal Render logic.
-
-                // THIS CALL IS FOR STEP 1: Tabs Navigation
-
-
-                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                   {activeTab === 'whatsapp' && (
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
