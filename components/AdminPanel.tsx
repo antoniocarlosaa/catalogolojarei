@@ -63,24 +63,58 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   }, [user, onClose]);
 
+  const loadLogs = async () => {
+    try {
+      const [acc, aud] = await Promise.all([
+        logger.getAccessLogs(),
+        logger.getAuditLogs()
+      ]);
+      setAccessLogs(acc);
+      setAuditLogs(aud);
+    } catch (err) {
+      console.error("Erro ao carregar logs", err);
+    }
+  };
+
   // Carregar logs quando mudar para a aba
   useEffect(() => {
     if (activeTab === 'logs') {
-      const loadLogs = async () => {
-        try {
-          const [acc, aud] = await Promise.all([
-            logger.getAccessLogs(),
-            logger.getAuditLogs()
-          ]);
-          setAccessLogs(acc);
-          setAuditLogs(aud);
-        } catch (err) {
-          console.error("Erro ao carregar logs", err);
-        }
-      };
       loadLogs();
     }
   }, [activeTab]);
+
+  const handleDeleteAuditLog = async (id: string) => {
+    if (!confirm("Excluir este registro?")) return;
+    try {
+      await logger.deleteAuditLog(id);
+      setAuditLogs(prev => prev.filter(l => l.id !== id));
+    } catch (e) { alert("Erro ao excluir log."); }
+  };
+
+  const handleClearAuditLogs = async () => {
+    if (!confirm("Tem certeza que deseja LIMPAR TODO o histórico de auditoria?")) return;
+    try {
+      await logger.clearAuditLogs();
+      setAuditLogs([]);
+    } catch (e) { alert("Erro ao limpar logs."); }
+  };
+
+  const handleDeleteAccessLog = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Evitar abrir modal
+    if (!confirm("Excluir este registro de visita?")) return;
+    try {
+      await logger.deleteAccessLog(id);
+      setAccessLogs(prev => prev.filter(l => l.id !== id));
+    } catch (e) { alert("Erro ao excluir log."); }
+  };
+
+  const handleClearAccessLogs = async () => {
+    if (!confirm("Tem certeza que deseja LIMPAR TODO o histórico de visitas?")) return;
+    try {
+      await logger.clearAccessLogs();
+      setAccessLogs([]);
+    } catch (e) { alert("Erro ao limpar logs."); }
+  };
 
   const [newType, setNewType] = useState<VehicleType>(VehicleType.MOTO);
   const [newName, setNewName] = useState('');
@@ -801,9 +835,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="space-y-8 animate-in fade-in duration-300">
                 {/* Seção de Auditoria (Admin Actions) */}
                 <div className="space-y-4">
-                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-[0.4em] border-l-2 border-gold pl-3 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm">security</span> Auditoria (Suas Ações)
-                  </h3>
+                  <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                    <h3 className="text-gold text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm">security</span> Auditoria (Suas Ações)
+                    </h3>
+                    <button
+                      onClick={handleClearAuditLogs}
+                      className="text-[9px] font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm">delete_sweep</span> Limpar Tudo
+                    </button>
+                  </div>
                   <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
                     <table className="w-full text-left">
                       <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
@@ -812,6 +854,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           <th className="p-4">Ação</th>
                           <th className="p-4">Alvo</th>
                           <th className="p-4 hidden sm:table-cell">Detalhes</th>
+                          <th className="p-4 w-10"></th>
                         </tr>
                       </thead>
                       <tbody className="text-[10px] text-white/70">
@@ -828,8 +871,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 {log.action_type}
                               </span>
                             </td>
-                            <td className="p-4 font-bold text-white">{log.target}</td>
-                            <td className="p-4 hidden sm:table-cell opacity-60 truncate max-w-[200px]">{log.details}</td>
+                            <td className="p-4 font-bold text-white max-w-[150px] truncate" title={log.target}>{log.target}</td>
+                            <td className="p-4 hidden sm:table-cell opacity-60 truncate max-w-[200px]" title={log.details}>{log.details}</td>
+                            <td className="p-4">
+                              <button
+                                onClick={() => log.id && handleDeleteAuditLog(log.id)}
+                                className="w-6 h-6 flex items-center justify-center rounded-full text-white/20 hover:text-red-500 hover:bg-white/10 transition-all"
+                                title="Excluir Registro"
+                              >
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                              </button>
+                            </td>
                           </tr>
                         ))}
                         {auditLogs.length === 0 && (
@@ -842,9 +894,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                 {/* Seção de Acessos (Visitas) */}
                 <div className="space-y-4">
-                  <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.4em] border-l-2 border-blue-400 pl-3 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm">public</span> Visitas Recentes
-                  </h3>
+                  <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                    <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm">public</span> Visitas Recentes
+                    </h3>
+                    <button
+                      onClick={handleClearAccessLogs}
+                      className="text-[9px] font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm">delete_sweep</span> Limpar Tudo
+                    </button>
+                  </div>
                   <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
                     <table className="w-full text-left">
                       <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
@@ -853,6 +913,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           <th className="p-4">Local</th>
                           <th className="p-4">Dispositivo</th>
                           <th className="p-4 hidden sm:table-cell">IP</th>
+                          <th className="p-4 w-10"></th>
                         </tr>
                       </thead>
                       <tbody className="text-[10px] text-white/70">
@@ -892,6 +953,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 <div className="text-[8px] opacity-40 hidden sm:block truncate max-w-[150px]">{deviceInfo}</div>
                               </td>
                               <td className="p-4 hidden sm:table-cell font-mono opacity-50 group-hover:text-white transition-all">{log.ip}</td>
+                              <td className="p-4">
+                                <button
+                                  onClick={(e) => log.id && handleDeleteAccessLog(log.id, e)}
+                                  className="w-6 h-6 flex items-center justify-center rounded-full text-white/20 hover:text-red-500 hover:bg-white/10 transition-all"
+                                  title="Excluir Registro"
+                                >
+                                  <span className="material-symbols-outlined text-sm">delete</span>
+                                </button>
+                              </td>
                             </tr>
                           );
                         })}

@@ -92,6 +92,30 @@ class LogService {
         if (error) throw error;
         return data as AuditLog[];
     }
+    // Excluir Log de Visita Individual
+    async deleteAccessLog(id: string) {
+        const { error } = await supabase.from('access_logs').delete().eq('id', id);
+        if (error) throw error;
+    }
+
+    // Limpar Todos os Logs de Visita
+    async clearAccessLogs() {
+        // Deleta tudo onde ID não é nulo (ou seja, tudo)
+        const { error } = await supabase.from('access_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (error) throw error;
+    }
+
+    // Excluir Log de Auditoria Individual
+    async deleteAuditLog(id: string) {
+        const { error } = await supabase.from('audit_logs').delete().eq('id', id);
+        if (error) throw error;
+    }
+
+    // Limpar Todos os Logs de Auditoria
+    async clearAuditLogs() {
+        const { error } = await supabase.from('audit_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (error) throw error;
+    }
 }
 
 export const logger = new LogService();
