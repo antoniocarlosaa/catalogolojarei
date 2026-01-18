@@ -5,11 +5,12 @@ import { Vehicle, VehicleType } from '../types';
 interface VehicleCardProps {
   vehicle: Vehicle;
   onInterest: (vehicle: Vehicle) => void;
+  onClick?: () => void;
   variant?: 'default' | 'promo' | 'featured' | 'hero';
   imageFit?: 'cover' | 'contain';
 }
 
-const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, variant = 'default', imageFit = 'cover' }) => {
+const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick, variant = 'default', imageFit = 'cover' }) => {
   const [zoomStyle, setZoomStyle] = useState({ transformOrigin: 'center center', scale: '1' });
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -32,11 +33,11 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, variant 
       onMouseMove={handleMouseMove}
       onMouseLeave={() => { setIsHovered(false); setZoomStyle({ transformOrigin: 'center center', scale: '1' }); }}
     >
-      {/* Modal image logic */}
+      {/* Modal image logic removed in favor of global modal */}
       {/* Media Area */}
       <div
         className="relative aspect-[4/5] overflow-hidden bg-black/20 cursor-pointer group/image"
-        onClick={() => setIsModalOpen(true)}
+        onClick={onClick}
       >
         {imageError ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white/5">
@@ -116,26 +117,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, variant 
         </div>
       </div>
 
-      {/* Full Screen Modal */}
-      {
-        isModalOpen && (
-          <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsModalOpen(false)}>
-            <button
-              className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 rounded-full text-white hover:bg-white hover:text-black transition-all"
-              onClick={() => setIsModalOpen(false)}
-            >
-              <span className="material-symbols-outlined">close</span>
-            </button>
-
-            <img
-              src={vehicle.imageUrl}
-              className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl scale-in-95 animate-in duration-300"
-              alt={vehicle.name}
-              onClick={(e) => e.stopPropagation()} // Prevent close on image click
-            />
-          </div>
-        )
-      }
+      {/* Full Screen Modal Removed */}
     </div >
   );
 };

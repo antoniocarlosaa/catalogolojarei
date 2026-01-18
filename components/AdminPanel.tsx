@@ -794,6 +794,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           }} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isFeatured ? 'bg-gold/20 text-gold' : 'bg-white/5 text-white/20 hover:text-gold hover:bg-gold/10'}`} title={v.isFeatured ? "Remover Destaque" : "Destacar Veículo"}>
                             <span className="material-symbols-outlined text-[18px]">star</span>
                           </button>
+                          <button onClick={() => {
+                            onUpdateVehicle(v.id, { isPromoSemana: !v.isPromoSemana });
+                            if (user?.email) logger.logAction(user.email, 'EDITAR', v.name, v.isPromoSemana ? 'Removeu Promoção' : 'Colocou em Promoção');
+                          }} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isPromoSemana ? 'bg-red-500/20 text-red-500' : 'bg-white/5 text-white/20 hover:text-red-500 hover:bg-red-500/10'}`} title={v.isPromoSemana ? "Remover Promoção" : "Colocar em Promoção"}>
+                            <span className="material-symbols-outlined text-[18px]">local_fire_department</span>
+                          </button>
                           <button onClick={() => setConfirmSoldId(v.id)} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isSold ? 'bg-green-500/20 text-green-500' : 'bg-white/5 text-yellow-500 hover:bg-yellow-500/20'}`} title={v.isSold ? "Marcar como Disponível" : "Marcar como Vendido"}>
                             <span className="material-symbols-outlined text-[18px]">{v.isSold ? 'check_circle' : 'sell'}</span>
                           </button>

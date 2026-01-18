@@ -5,14 +5,18 @@ import { Vehicle, VehicleType } from '../types';
 interface HeroCardProps {
     vehicle: Vehicle;
     onInterest: (vehicle: Vehicle) => void;
+    onViewDetails?: (vehicle: Vehicle) => void;
 }
 
-const HeroCard: React.FC<HeroCardProps> = ({ vehicle, onInterest }) => {
+const HeroCard: React.FC<HeroCardProps> = ({ vehicle, onInterest, onViewDetails }) => {
     const [imageError, setImageError] = useState(false);
     const isPromo = vehicle.isPromoSemana || vehicle.isPromoMes;
 
     return (
-        <div className={`relative bg-[#0d0d0d] rounded-[1.5rem] overflow-hidden border border-white/5 group transition-all duration-300 hover:border-gold/20 ${vehicle.isSold ? 'opacity-40 grayscale' : ''}`}>
+        <div
+            onClick={() => onViewDetails && onViewDetails(vehicle)}
+            className={`relative bg-[#0d0d0d] rounded-[1.5rem] overflow-hidden border border-white/5 group transition-all duration-300 hover:border-gold/20 cursor-pointer ${vehicle.isSold ? 'opacity-40 grayscale' : ''}`}
+        >
             <div className="grid grid-cols-1 lg:grid-cols-5">
                 {/* Imagem - 60% */}
                 <div className="lg:col-span-3 relative aspect-[16/9] overflow-hidden bg-black/20">
@@ -70,6 +74,7 @@ const HeroCard: React.FC<HeroCardProps> = ({ vehicle, onInterest }) => {
                 </div>
             </div>
         </div>
+        </div >
     );
 };
 

@@ -1,4 +1,5 @@
-import FeaturedCarousel from './components/FeaturedCarousel'; // Importação adicionada
+import FeaturedCarousel from './components/FeaturedCarousel';
+import VehicleDetailModal from './components/VehicleDetailModal'; // Global Modal
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Vehicle, CategoryFilter, VehicleType, AppSettings } from './types';
@@ -9,11 +10,12 @@ import AdminPanel from './components/AdminPanel';
 import LoginModal from './components/LoginModal';
 import { db } from './services/VehicleService';
 import { useAuth } from './contexts/AuthContext';
-import { logger } from './services/LogService'; // Import logger
+import { logger } from './services/LogService';
 
 const App: React.FC = () => {
   const { user } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null); // State Global do Modal
   const [settings, setSettings] = useState<AppSettings>({ whatsappNumbers: [], googleMapsUrl: '' });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<CategoryFilter>('TUDO');
@@ -85,6 +87,12 @@ const App: React.FC = () => {
     const selectedNumber = settings.whatsappNumbers[randomIndex];
     const message = encodeURIComponent(`Olá! Vi no catálogo o veículo: ${vehicle.name}. Ainda está disponível?`);
     window.open(`https://wa.me/55${selectedNumber}?text=${message}`, '_blank');
+  };
+
+
+
+  const handleViewDetails = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle);
   };
 
   const onUpload = async (nv: Vehicle) => {
@@ -191,10 +199,10 @@ const App: React.FC = () => {
                 <div className={`space-y-6 ${promoSemana.length > 0 ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
                   <h3 className="text-[10px] text-gold font-bold uppercase tracking-[0.4em] border-l-2 border-gold pl-3">Destaques</h3>
                   {destaques.length === 1 ? (
-                    <HeroCard vehicle={destaques[0]} onInterest={handleInterest} />
+                    <HeroCard vehicle={destaques[0]} onInterest={handleInterest} onViewDetails={() => handleViewDetails(destaques[0])} />
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {destaques.map(v => <VehicleCard key={v.id} vehicle={v} onInterest={handleInterest} variant="featured" />)}
+                      {destaques.map(v => <VehicleCard key={v.id} vehicle={v} onInterest={handleInterest} onClick={() => handleViewDetails(v)} variant="featured" />)}
                     </div>
                   )}
                 </div>
@@ -205,7 +213,7 @@ const App: React.FC = () => {
                 <div className="space-y-6">
                   <h3 className="text-[10px] text-red-500 font-bold uppercase tracking-[0.4em] border-l-2 border-red-500 pl-3">🔥 Promoções</h3>
                   <div className="space-y-6">
-                    {promoSemana.slice(0, 3).map(v => <VehicleCard key={v.id} vehicle={v} onInterest={handleInterest} variant="promo" />)}
+                    {promoSemana.slice(0, 3).map(v => <VehicleCard key={v.id} vehicle={v} onInterest={handleInterest} onClick={() => handleViewDetails(v)} variant="promo" />)}
                   </div>
                 </div>
               )}
@@ -221,7 +229,7 @@ const App: React.FC = () => {
         )}
 
         {/* CARROSSEL DESTAQUE NA LINHA DOURADA */}
-        <FeaturedCarousel vehicles={vehicles} onInterest={handleInterest} />
+        <FeaturedCarousel vehicles={vehicles} onInterest={handleInterest} onViewDetails={handleViewDetails} />
 
         {/* MOTOS - GRID EXPANDIDO 6 COLUNAS */}
         {motosEstoque.length > 0 && (filter === 'TUDO' || filter === 'MOTOS') && (
@@ -230,7 +238,7 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
               {filter === 'TUDO' ? (
                 <>
-                  {motosEstoque.slice(0, 6).map(v => <VehicleCard key={v.id} vehicle={v} onInterest={handleInterest} imageFit={settings.cardImageFit} />)}
+                  {motosEstoque.slice(0, 6).map(v => <VehicleCard key={v.id} vehicle={v} onInterest={handleInterest} onClick={() => handleViewDetails(v)} imageFit={settings.cardImageFit} />)}
                   {motosEstoque.length > 6 && (
                     <ViewMoreCard
                       type="MOTOS"
@@ -240,7 +248,7 @@ const App: React.FC = () => {
                   )}
                 </>
               ) : (
-                motosEstoque.map(v => <VehicleCard key={v.id} vehicle={v} onInterest={handleInterest} imageFit={settings.cardImageFit} />)
+                motosEstoque.map(v => <VehicleCard key={v.id} vehicle={v} onInterest={handleInterest} onClick={() => handleViewDetails(v)} imageFit={settings.cardImageFit} />)
               )}
             </div>
           </section>
@@ -253,7 +261,7 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
               {filter === 'TUDO' ? (
                 <>
-                  {carrosEstoque.slice(0, 6).map(v => <VehicleCard key={v.id} vehicle={v} onInterest={handleInterest} imageFit={settings.cardImageFit} />)}
+                  {carrosEstoque.slice(0, 6).map(v => <VehicleCard key={v.id} vehicle={v} onInterest={handleInterest} onClick={() => handleViewDetails(v)} imageFit={settings.cardImageFit} />)}
                   {carrosEstoque.length > 6 && (
                     <ViewMoreCard
                       type="CARROS"
@@ -263,7 +271,7 @@ const App: React.FC = () => {
                   )}
                 </>
               ) : (
-                carrosEstoque.map(v => <VehicleCard key={v.id} vehicle={v} onInterest={handleInterest} imageFit={settings.cardImageFit} />)
+                carrosEstoque.map(v => <VehicleCard key={v.id} vehicle={v} onInterest={handleInterest} onClick={() => handleViewDetails(v)} imageFit={settings.cardImageFit} />)
               )}
             </div>
           </section>
@@ -298,6 +306,14 @@ const App: React.FC = () => {
           />
         )
       }
+
+      {selectedVehicle && (
+        <VehicleDetailModal
+          vehicle={selectedVehicle}
+          onClose={() => setSelectedVehicle(null)}
+          onInterest={handleInterest}
+        />
+      )}
 
       {
         showLoginModal && (
