@@ -27,17 +27,14 @@ class VehicleService {
       // Converter dados do Supabase
       const supabaseVehicles = data.map(v => this.convertFromDatabase(v));
 
-      // Mesclar com dados locais que podem não ter sido sincronizados (falha no save)
-      const localVehicles = this.getFallbackVehicles();
-      const supabaseIds = new Set(supabaseVehicles.map(v => v.id));
+      // Conversão
+      const supabaseVehicles = data.map(v => this.convertFromDatabase(v));
 
-      // Encontrar veículos que estão no local mas não no supabase
-      const missingVehicles = localVehicles.filter(v => !supabaseIds.has(v.id));
+      // Se temos dados do Supabase, ATUALIZAMOS o cache local com a verdade do servidor.
+      // Isso remove "fantasmas" (veículos deletados em outros dispositivos).
+      localStorage.setItem(this.storageKey, JSON.stringify(supabaseVehicles));
 
-      if (missingVehicles.length > 0) {
-        console.log(`Encontrados ${missingVehicles.length} veículos apenas locais. Mesclando...`);
-        return [...missingVehicles, ...supabaseVehicles];
-      }
+      return supabaseVehicles;
 
       return supabaseVehicles;
     } catch (error) {
