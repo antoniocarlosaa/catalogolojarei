@@ -81,6 +81,15 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
           </span>
         </div>
 
+        {/* COD3 Badge */}
+        {vehicle.plate_last3 && (
+          <div className="absolute top-3 right-3 z-20 px-2 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-md pointer-events-none">
+            <span className="text-[10px] font-mono text-white/90 tracking-widest">
+              {vehicle.plate_last3}
+            </span>
+          </div>
+        )}
+
         {vehicle.isSold && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[2px] z-20 pointer-events-none">
             <span className="border border-white/20 px-5 py-2 text-[8px] font-bold uppercase tracking-widest text-white rounded-full">INDISPONÍVEL</span>
@@ -111,7 +120,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
             }}
             className="w-full py-3.5 bg-white text-black hover:bg-gold active:scale-95 transition-all rounded-xl flex items-center justify-center gap-3 group"
           >
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em]">TENHO INTERESSE</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">TENHO INTERESSE</span>
             <span className="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </button>
         </div>

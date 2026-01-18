@@ -129,7 +129,7 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                         onClick={() => onInterest(vehicle)}
                         className="w-full py-5 bg-gold text-black hover:bg-gold-light active:scale-95 transition-all rounded-xl flex items-center justify-center gap-3 group shadow-xl shadow-gold/10"
                     >
-                        <span className="text-xs font-bold uppercase tracking-[0.2em]">TENHO INTERESSE</span>
+                        <span className="text-sm font-bold uppercase tracking-wider">TENHO INTERESSE</span>
                         <span className="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">whatsapp</span>
                     </button>
                 </div>

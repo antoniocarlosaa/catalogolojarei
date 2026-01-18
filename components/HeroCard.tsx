@@ -30,7 +30,8 @@ const HeroCard: React.FC<HeroCardProps> = ({ vehicle, onInterest, onViewDetails 
                         <img
                             src={vehicle.imageUrl}
                             onError={() => setImageError(true)}
-                            className="w-full h-full object-cover object-top"
+                            className="w-full h-full object-cover"
+                            style={{ objectPosition: vehicle.imagePosition || 'center' }}
                             loading="lazy"
                             alt={vehicle.name}
                         />
@@ -67,7 +68,7 @@ const HeroCard: React.FC<HeroCardProps> = ({ vehicle, onInterest, onViewDetails 
                             onClick={() => onInterest(vehicle)}
                             className="w-full py-4 bg-white text-black hover:bg-gold active:scale-95 transition-all rounded-xl flex items-center justify-center gap-3 group"
                         >
-                            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">TENHO INTERESSE</span>
+                            <span className="text-xs font-bold uppercase tracking-wider">TENHO INTERESSE</span>
                             <span className="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">arrow_forward</span>
                         </button>
                     </div>
