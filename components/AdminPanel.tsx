@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Vehicle, VehicleType } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { logger, AccessLog, AuditLog } from '../services/LogService';
+import { supabase } from '../services/supabase';
 
 
 interface AdminPanelProps {
@@ -178,17 +179,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Função auxiliar para upload seguro
   const uploadFileToStorage = async (file: File): Promise<string> => {
-    // Import dinâmico ou uso direto se `supabase` não estiver no escopo (assumindo que precisamos importar, mas AdminPanel.tsx não tem import supabase. Vamos adicionar ou usar props. Mas AuthService usa supabase. Vamos importar.)
-    // Como não posso adicionar imports fora deste bloco de replace facilmente sem quebrar, vou assumir falha se não tiver supabase.
-    // CORREÇÃO: AdminPanel não importava 'supabase'. Vou ter que confiar que o VehicleService resolve? Não, VehicleService só salva dados.
-    // Preciso adicionar `import { supabase } from '../services/supabase';` no topo do arquivo. 
-    // VOU USAR UMA APPROACH HÍBRIDA: Fazer o replace deste bloco E DEPOIS adicionar o import no topo em outro passo.
-
-    // ...Hack para usar supabase se estiver global ou... espere, eu tenho que adicionar o import.
-    // Vou focar na lógica aqui. O import adicionarei no próximo passo.
-    // @ts-ignore
-    const { supabase } = await import('../services/supabase');
-
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = `${fileName}`;
@@ -314,6 +304,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       ? editPrice
       : Number(editPrice.replace(/\D/g, ''));
     onUpdateVehicle(id, { name: editName.toUpperCase(), price: formattedPrice, specs: editSpecs });
+
+    // Log Update
+    if (user?.email) {
+      logger.logAction(user.email, 'EDITAR', editName.toUpperCase(), `Atualização rápida: Preço ${formattedPrice}`);
+    }
+
     setEditingId(null);
   };
 
@@ -367,628 +363,634 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
 
-                  {activeTab === 'whatsapp' && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
-                        <div>
-                          <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-lg">location_on</span> Localização da Loja
-                          </h3>
-                          <input value={mapsUrl} onChange={(e) => setMapsUrl(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-2xl focus:border-gold outline-none" placeholder="Link Google Maps..." />
-                        </div>
+          {activeTab === 'whatsapp' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
+                <div>
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">location_on</span> Localização da Loja
+                  </h3>
+                  <input value={mapsUrl} onChange={(e) => setMapsUrl(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-2xl focus:border-gold outline-none" placeholder="Link Google Maps..." />
+                </div>
 
-                        <div>
-                          <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-lg">wallpaper</span> Plano de Fundo (Home)
-                          </h3>
-                          <div className="space-y-4">
-                            <div className="relative">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                id="bg-upload"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    try {
-                                      const base64 = await fileToBase64(file);
-                                      setBackgroundImageUrl(base64);
-                                    } catch (err) {
-                                      alert("Erro ao processar imagem");
-                                    }
-                                  }
-                                }}
-                                className="hidden"
-                              />
-                              <label
-                                htmlFor="bg-upload"
-                                className="w-full flex items-center justify-center gap-2 bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-2xl cursor-pointer hover:bg-white/10 transition-all group"
-                              >
-                                <span className="material-symbols-outlined group-hover:scale-110 transition-transform">upload_file</span>
-                                {backgroundImageUrl ? 'Trocar Imagem' : 'Carregar do Dispositivo'}
-                              </label>
-                            </div>
+                <div>
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">wallpaper</span> Plano de Fundo (Home)
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="bg-upload"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            try {
+                              const base64 = await fileToBase64(file);
+                              setBackgroundImageUrl(base64);
+                            } catch (err) {
+                              alert("Erro ao processar imagem");
+                            }
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="bg-upload"
+                        className="w-full flex items-center justify-center gap-2 bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-2xl cursor-pointer hover:bg-white/10 transition-all group"
+                      >
+                        <span className="material-symbols-outlined group-hover:scale-110 transition-transform">upload_file</span>
+                        {backgroundImageUrl ? 'Trocar Imagem' : 'Carregar do Dispositivo'}
+                      </label>
+                    </div>
 
-                            {backgroundImageUrl && (
-                              <div className="space-y-3">
-                                <div className="relative w-full h-48 rounded-xl overflow-hidden border border-white/10 group bg-black/50">
-                                  <img
-                                    src={backgroundImageUrl}
-                                    alt="Preview"
-                                    className="w-full h-full object-cover opacity-80 transition-all"
-                                    style={{ objectPosition: backgroundPos }}
-                                  />
-                                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <span className="text-[10px] text-white/50 bg-black/50 px-3 py-1 rounded-full uppercase tracking-widest">Preview</span>
-                                  </div>
-                                  <button
-                                    onClick={() => setBackgroundImageUrl('')}
-                                    className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
-                                    title="Remover Imagem"
-                                  >
-                                    <span className="material-symbols-outlined text-sm">close</span>
-                                  </button>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-1 block">Posição Horizontal</label>
-                                    <input
-                                      type="range"
-                                      min="0"
-                                      max="100"
-                                      value={parseInt(backgroundPos.split(' ')[0])}
-                                      onChange={(e) => setBackgroundPos(`${e.target.value}% ${backgroundPos.split(' ')[1]}`)}
-                                      className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                                    />
-                                    <div className="text-right text-[9px] text-white/50 mt-1">{backgroundPos.split(' ')[0]}</div>
-                                  </div>
-                                  <div>
-                                    <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-1 block">Posição Vertical</label>
-                                    <input
-                                      type="range"
-                                      min="0"
-                                      max="100"
-                                      value={parseInt(backgroundPos.split(' ')[1])}
-                                      onChange={(e) => setBackgroundPos(`${backgroundPos.split(' ')[0]} ${e.target.value}%`)}
-                                      className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                                    />
-                                    <div className="text-right text-[9px] text-white/50 mt-1">{backgroundPos.split(' ')[1]}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
+                    {backgroundImageUrl && (
+                      <div className="space-y-3">
+                        <div className="relative w-full h-48 rounded-xl overflow-hidden border border-white/10 group bg-black/50">
+                          <img
+                            src={backgroundImageUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover opacity-80 transition-all"
+                            style={{ objectPosition: backgroundPos }}
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span className="text-[10px] text-white/50 bg-black/50 px-3 py-1 rounded-full uppercase tracking-widest">Preview</span>
                           </div>
+                          <button
+                            onClick={() => setBackgroundImageUrl('')}
+                            className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                            title="Remover Imagem"
+                          >
+                            <span className="material-symbols-outlined text-sm">close</span>
+                          </button>
                         </div>
 
-                        <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
-                          <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-lg">image</span> Estilo das Fotos nos Cards
-                          </h3>
-                          <div className="flex gap-4">
-                            <button
-                              onClick={() => setCardImageFit('cover')}
-                              className={`flex-1 py-3 px-4 rounded-xl border transition-all flex items-center justify-center gap-2 ${cardImageFit === 'cover' ? 'bg-gold text-black border-gold' : 'bg-surface/5 text-white border-white/10 hover:border-gold/50'}`}
-                            >
-                              <span className="material-symbols-outlined">crop</span>
-                              <div className="text-left">
-                                <div className="text-[10px] font-bold uppercase">Preencher (Padrão)</div>
-                                <div className="text-[8px] opacity-70">Corta bordas para alinhar</div>
-                              </div>
-                            </button>
-                            <button
-                              onClick={() => setCardImageFit('contain')}
-                              className={`flex-1 py-3 px-4 rounded-xl border transition-all flex items-center justify-center gap-2 ${cardImageFit === 'contain' ? 'bg-gold text-black border-gold' : 'bg-surface/5 text-white border-white/10 hover:border-gold/50'}`}
-                            >
-                              <span className="material-symbols-outlined">aspect_ratio</span>
-                              <div className="text-left">
-                                <div className="text-[10px] font-bold uppercase">Foto Completa</div>
-                                <div className="text-[8px] opacity-70">Sem cortes, pode sobrar fundo</div>
-                              </div>
-                            </button>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-1 block">Posição Horizontal</label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={parseInt(backgroundPos.split(' ')[0])}
+                              onChange={(e) => setBackgroundPos(`${e.target.value}% ${backgroundPos.split(' ')[1]}`)}
+                              className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <div className="text-right text-[9px] text-white/50 mt-1">{backgroundPos.split(' ')[0]}</div>
                           </div>
-                        </div>
-
-                        <div>
-                          <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-lg">call</span> WhatsApps de Atendimento
-                          </h3>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {numbers.map((n, i) => (
-                              <input key={i} value={n} onChange={(e) => {
-                                const next = [...numbers];
-                                next[i] = e.target.value.replace(/\D/g, '');
-                                setNumbers(next);
-                              }} className="bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-xl outline-none focus:border-gold" placeholder={`WhatsApp ${i + 1}...`} />
-                            ))}
+                          <div>
+                            <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-1 block">Posição Vertical</label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={parseInt(backgroundPos.split(' ')[1])}
+                              onChange={(e) => setBackgroundPos(`${backgroundPos.split(' ')[0]} ${e.target.value}%`)}
+                              className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <div className="text-right text-[9px] text-white/50 mt-1">{backgroundPos.split(' ')[1]}</div>
                           </div>
                         </div>
                       </div>
-                      <button
-                        onClick={() => {
-                          onSaveNumbers(numbers.filter(n => n));
-                          onSaveMapsUrl(mapsUrl);
-                          onSaveBackgroundImageUrl(backgroundImageUrl);
-                          onSaveBackgroundPosition(backgroundPos);
-                          onSaveCardImageFit(cardImageFit);
-                          alert('Salvo!');
-                        }}
-                        className="w-full py-5 bg-gold text-black font-heading text-[11px] tracking-[0.3em] rounded-full shadow-xl hover:brightness-110 active:scale-95 transition-all"
-                      >
-                        SALVAR TUDO
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">image</span> Estilo das Fotos nos Cards
+                  </h3>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setCardImageFit('cover')}
+                      className={`flex-1 py-3 px-4 rounded-xl border transition-all flex items-center justify-center gap-2 ${cardImageFit === 'cover' ? 'bg-gold text-black border-gold' : 'bg-surface/5 text-white border-white/10 hover:border-gold/50'}`}
+                    >
+                      <span className="material-symbols-outlined">crop</span>
+                      <div className="text-left">
+                        <div className="text-[10px] font-bold uppercase">Preencher (Padrão)</div>
+                        <div className="text-[8px] opacity-70">Corta bordas para alinhar</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setCardImageFit('contain')}
+                      className={`flex-1 py-3 px-4 rounded-xl border transition-all flex items-center justify-center gap-2 ${cardImageFit === 'contain' ? 'bg-gold text-black border-gold' : 'bg-surface/5 text-white border-white/10 hover:border-gold/50'}`}
+                    >
+                      <span className="material-symbols-outlined">aspect_ratio</span>
+                      <div className="text-left">
+                        <div className="text-[10px] font-bold uppercase">Foto Completa</div>
+                        <div className="text-[8px] opacity-70">Sem cortes, pode sobrar fundo</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">call</span> WhatsApps de Atendimento
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {numbers.map((n, i) => (
+                      <input key={i} value={n} onChange={(e) => {
+                        const next = [...numbers];
+                        next[i] = e.target.value.replace(/\D/g, '');
+                        setNumbers(next);
+                      }} className="bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-xl outline-none focus:border-gold" placeholder={`WhatsApp ${i + 1}...`} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  onSaveNumbers(numbers.filter(n => n));
+                  onSaveMapsUrl(mapsUrl);
+                  onSaveBackgroundImageUrl(backgroundImageUrl);
+                  onSaveBackgroundPosition(backgroundPos);
+                  onSaveCardImageFit(cardImageFit);
+                  alert('Salvo!');
+                }}
+                className="w-full py-5 bg-gold text-black font-heading text-[11px] tracking-[0.3em] rounded-full shadow-xl hover:brightness-110 active:scale-95 transition-all"
+              >
+                SALVAR TUDO
+              </button>
+            </div>
+          )}
+
+          {
+            activeTab === 'upload' && (
+              <form onSubmit={handleCreateVehicle} className="space-y-8 animate-in fade-in duration-300 pb-10">
+                <div className="flex p-1.5 bg-white/5 rounded-full border border-white/5">
+                  <button type="button" onClick={() => setNewType(VehicleType.MOTO)} className={`flex-1 py-4 rounded-full flex items-center justify-center gap-3 transition-all ${newType === VehicleType.MOTO ? 'bg-gold text-black shadow-lg' : 'text-white/40 hover:text-white'}`}>
+                    <span className="material-symbols-outlined">motorcycle</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest">MOTO</span>
+                  </button>
+                  <button type="button" onClick={() => setNewType(VehicleType.CARRO)} className={`flex-1 py-4 rounded-full flex items-center justify-center gap-3 transition-all ${newType === VehicleType.CARRO ? 'bg-gold text-black shadow-lg' : 'text-white/40 hover:text-white'}`}>
+                    <span className="material-symbols-outlined">directions_car</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest">CARRO</span>
+                  </button>
+                </div>
+
+                {/* Checkbox 0 KM */}
+                <div className="flex items-center gap-3 p-4 bg-gold/10 border border-gold/20 rounded-2xl">
+                  <input
+                    type="checkbox"
+                    id="isZeroKm"
+                    checked={isZeroKm}
+                    onChange={(e) => {
+                      setIsZeroKm(e.target.checked);
+                      if (e.target.checked) {
+                        setNewKM('0');
+                      }
+                    }}
+                    className="w-5 h-5 rounded border-gold/30 text-gold focus:ring-gold"
+                  />
+                  <label htmlFor="isZeroKm" className="text-sm font-bold text-gold uppercase tracking-wider cursor-pointer">
+                    ✨ Veículo 0 KM
+                  </label>
+                </div>
+
+                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-[10px] text-gold font-bold uppercase tracking-widest mb-4">Fotos do Veículo (Máx 6)</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+                        {imagePreviews.map((url, i) => (
+                          <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-black border border-white/10 group">
+                            <img src={url} className="w-full h-full object-cover" />
+                            <button type="button" onClick={() => removeMedia(i, 'image')} className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded-full"><span className="material-symbols-outlined text-[14px]">close</span></button>
+                            {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-gold/90 text-black text-[7px] font-bold text-center py-0.5 uppercase">Capa</div>}
+                          </div>
+                        ))}
+                        {imagePreviews.length < 6 && (
+                          <button type="button" disabled={isUploading} onClick={() => imageInputRef.current?.click()} className={`aspect-square bg-surface-light border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'text-white/20 hover:border-gold hover:text-gold'}`}>
+                            {isUploading ? <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">add_a_photo</span>}
+                          </button>
+                        )}
+                      </div>
+                      <input type="file" ref={imageInputRef} className="hidden" accept="image/*" multiple onChange={(e) => handleFileChange(e, 'image')} />
+                    </div>
+
+                    {imagePreviews.length > 0 && (
+                      <div className="bg-white/5 p-4 rounded-xl border border-white/5 mb-6">
+                        <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-3 block">Ajustar Posição da Foto Principal (Capa)</label>
+                        <div className="flex gap-4 items-center">
+                          <div className="w-20 h-20 rounded-lg overflow-hidden relative border border-white/20">
+                            <img src={imagePreviews[0]} className="w-full h-full object-cover" style={{ objectPosition: newImagePos }} />
+                          </div>
+                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <div className="flex justify-between mb-1">
+                                <span className="text-[8px] text-white/50 uppercase">Horizontal</span>
+                                <span className="text-[8px] text-white/50">{newImagePos.split(' ')[0]}</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={parseInt(newImagePos.split(' ')[0])}
+                                onChange={(e) => setNewImagePos(`${e.target.value}% ${newImagePos.split(' ')[1]}`)}
+                                className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                              />
+                            </div>
+                            <div>
+                              <div className="flex justify-between mb-1">
+                                <span className="text-[8px] text-white/50 uppercase">Vertical</span>
+                                <span className="text-[8px] text-white/50">{newImagePos.split(' ')[1]}</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={parseInt(newImagePos.split(' ')[1])}
+                                onChange={(e) => setNewImagePos(`${newImagePos.split(' ')[0]} ${e.target.value}%`)}
+                                className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <h4 className="text-[10px] text-gold font-bold uppercase tracking-widest mb-4">Vídeos (Opcional - Máx 3)</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {videoPreviews.map((url, i) => (
+                          <div key={i} className="relative aspect-video rounded-xl overflow-hidden bg-black border border-white/10">
+                            <video src={url} className="w-full h-full object-cover" muted />
+                            <button type="button" onClick={() => removeMedia(i, 'video')} className="absolute top-2 right-2 bg-black/70 text-white p-1.5 rounded-full"><span className="material-symbols-outlined">close</span></button>
+                          </div>
+                        ))}
+                        {videoPreviews.length < 3 && (
+                          <button type="button" disabled={isUploading} onClick={() => videoInputRef.current?.click()} className={`aspect-video bg-surface-light border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'text-white/20 hover:border-gold hover:text-gold'}`}>
+                            {isUploading ? <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">videocam</span>}
+                          </button>
+                        )}
+                      </div>
+                      <input type="file" ref={videoInputRef} className="hidden" accept="video/*" multiple onChange={(e) => handleFileChange(e, 'video')} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="md:col-span-2">
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Modelo Comercial</label>
+                      <input value={newName} onChange={e => setNewName(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none uppercase" placeholder="Ex: BMW S1000RR M PACK" />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">KM Atual</label>
+                      <input value={newKM} onChange={e => setNewKM(e.target.value)} disabled={isZeroKm} className={`w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none ${isZeroKm ? 'opacity-50 cursor-not-allowed' : ''}`} placeholder={isZeroKm ? "0 KM" : "Ex: 500"} />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Preço (R$)</label>
+                      <input
+                        value={newPrice}
+                        onChange={e => setNewPrice(formatCurrency(e.target.value))}
+                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none"
+                        placeholder="125.000"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Ano / Modelo</label>
+                      <input value={newYear} onChange={e => setNewYear(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="2024" />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cor</label>
+                      <input value={newColor} onChange={e => setNewColor(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none uppercase" placeholder="PRETO" />
+                    </div>
+                    {newType === VehicleType.MOTO ? (
+                      <div>
+                        <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cilindradas (CC)</label>
+                        <input value={newDisplacement} onChange={e => setNewDisplacement(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="1000" />
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Câmbio</label>
+                          <select value={newTransmission} onChange={e => setNewTransmission(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none">
+                            <option value="Automático">Automático</option>
+                            <option value="Manual">Manual</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-white/5">
+                    {[
+                      { label: 'Único Dono', state: isSingleOwner, set: setIsSingleOwner, tooltip: 'Apenas um proprietário.' },
+                      { label: 'DUT na Mão', state: hasDut, set: setHasDut, tooltip: 'Documentação pronta.' },
+                      { label: 'Manual', state: hasManual, set: setHasManual, tooltip: 'Acompanha manual.' },
+                      { label: 'Chave Reserva', state: hasSpareKey, set: setHasSpareKey, tooltip: 'Possui chave reserva.' },
+                      { label: 'Promoção', state: isPromoSemana, set: setIsPromoSemana, tooltip: 'Marcar com tag de promoção.' },
+                      { label: 'Destaque', state: isFeatured, set: setIsFeatured, tooltip: 'Exibir no topo ou carrossel.' },
+                    ].map(item => (
+                      <div key={item.label} className="relative flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 cursor-pointer hover:border-gold/30 transition-all group/tooltip">
+                        <input type="checkbox" id={`check-${item.label}`} checked={item.state} onChange={e => item.set(e.target.checked)} className="accent-gold w-4 h-4 cursor-pointer" />
+                        <label htmlFor={`check-${item.label}`} className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer">
+                          <span className="text-[10px] text-white/60 uppercase font-bold tracking-widest truncate">{item.label}</span>
+                        </label>
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 p-4 bg-black/95 border border-gold/20 rounded-2xl text-[9px] text-white/70 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50">
+                          {item.tooltip}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button type="submit" disabled={isUploading} className={`w-full py-6 bg-gold text-black text-[13px] font-heading tracking-[0.3em] rounded-full shadow-2xl transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gold-light active:scale-[0.98]'}`}>
+                  {isUploading ? 'PROCESSANDO MÍDIA...' : 'PUBLICAR NO CATÁLOGO'}
+                </button>
+              </form>
+            )
+          }
+
+          {
+            activeTab === 'inventory' && (
+              <div className="space-y-4 pb-10">
+                {vehicles.filter(v => !v.isSold).map(v => (
+                  <div key={v.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 flex items-start gap-4 group hover:border-white/20 transition-all">
+                    <img src={v.imageUrl} className="w-20 h-20 rounded-2xl object-cover border border-white/5 shrink-0 mt-1" />
+                    <div className="flex-1 min-w-0">
+                      {editingId === v.id ? (
+                        <div className="flex flex-col gap-2">
+                          <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full bg-surface-light border border-gold/50 text-white text-[11px] px-3 py-1.5 rounded-lg focus:outline-none uppercase font-heading tracking-wider" />
+                          <input
+                            value={editPrice}
+                            onChange={(e) => setEditPrice(formatCurrency(e.target.value))}
+                            className="w-full bg-surface-light border border-gold/50 text-gold text-[10px] px-3 py-1.5 rounded-lg focus:outline-none font-bold"
+                          />
+                          <input value={editSpecs} onChange={e => setEditSpecs(e.target.value)} className="w-full bg-surface-light border border-white/10 text-white text-[10px] px-3 py-1.5 rounded-lg focus:outline-none" placeholder="Specs" />
+                        </div>
+                      ) : (
+                        <div className="cursor-pointer group/info" onClick={() => startEditing(v)}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-white text-xs font-heading tracking-wider truncate uppercase group-hover/info:text-gold transition-colors">{v.name}</h4>
+                            {v.isFeatured && <span className="text-[8px] bg-gold text-black px-1.5 rounded font-bold uppercase">Destaque</span>}
+                          </div>
+                          <p className="text-gold text-[10px] font-bold">R$ {typeof v.price === 'number' ? v.price.toLocaleString('pt-BR') : v.price}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-center gap-2 pt-1 shrink-0">
+                      {editingId === v.id ? (
+                        <>
+                          <button onClick={() => saveInlineEdit(v.id)} className="w-10 h-10 flex items-center justify-center bg-gold text-black rounded-full shadow-lg hover:scale-110 transition-all"><span className="material-symbols-outlined text-xl">check</span></button>
+                          <button onClick={() => setEditingId(null)} className="w-10 h-10 flex items-center justify-center bg-white/10 text-white/50 rounded-full hover:bg-white/20 transition-all"><span className="material-symbols-outlined text-xl">close</span></button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => startEditing(v)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-blue-400 hover:bg-blue-400/20 transition-all" title="Editar">
+                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                          </button>
+                          <button onClick={() => {
+                            onUpdateVehicle(v.id, { isFeatured: !v.isFeatured });
+                            if (user?.email) logger.logAction(user.email, 'EDITAR', v.name, v.isFeatured ? 'Removeu Destaque' : 'Destacou');
+                          }} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isFeatured ? 'bg-gold/20 text-gold' : 'bg-white/5 text-white/20 hover:text-gold hover:bg-gold/10'}`} title={v.isFeatured ? "Remover Destaque" : "Destacar Veículo"}>
+                            <span className="material-symbols-outlined text-[18px]">star</span>
+                          </button>
+                          <button onClick={() => setConfirmSoldId(v.id)} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isSold ? 'bg-green-500/20 text-green-500' : 'bg-white/5 text-yellow-500 hover:bg-yellow-500/20'}`} title={v.isSold ? "Marcar como Disponível" : "Marcar como Vendido"}>
+                            <span className="material-symbols-outlined text-[18px]">{v.isSold ? 'check_circle' : 'sell'}</span>
+                          </button>
+                          <button onClick={() => onDeleteVehicle(v.id)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-red-500 hover:bg-red-500/20 transition-all" title="Excluir">
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {vehicles.filter(v => !v.isSold).length === 0 && (
+                  <div className="text-center py-12 text-white/20 text-xs font-bold uppercase tracking-widest bg-black/20 rounded-xl">
+                    Nenhum veículo em estoque
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          {
+            activeTab === 'sold' && (
+              <div className="space-y-4 pb-10">
+                {vehicles.filter(v => v.isSold).map(v => (
+                  <div key={v.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 flex items-start gap-4 grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition-all">
+                    <img src={v.imageUrl} className="w-16 h-16 rounded-2xl object-cover border border-white/5 shrink-0 mt-1" />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white/50 text-xs font-heading tracking-wider truncate uppercase line-through">{v.name}</h4>
+                      <span className="text-[9px] text-green-500/80 uppercase font-bold tracking-wider block mt-1">VENDIDO</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-2 pt-1 shrink-0">
+                      <button onClick={() => setConfirmSoldId(v.id)} className="w-8 h-8 flex items-center justify-center rounded-full bg-green-500/20 text-green-500 transition-all" title="Marcar como Disponível">
+                        <span className="material-symbols-outlined text-[18px]">undo</span>
+                      </button>
+                      <button onClick={() => onDeleteVehicle(v.id)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-red-500 hover:bg-red-500/20 transition-all" title="Excluir do Histórico">
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
                       </button>
                     </div>
-                  )}
+                  </div>
+                ))}
+                {vehicles.filter(v => v.isSold).length === 0 && (
+                  <div className="text-center py-12 text-white/20 text-xs font-bold uppercase tracking-widest bg-black/20 rounded-xl">
+                    Nenhum veículo vendido
+                  </div>
+                )}
+              </div>
+            )
+          }
 
-                  {
-                    activeTab === 'upload' && (
-                      <form onSubmit={handleCreateVehicle} className="space-y-8 animate-in fade-in duration-300 pb-10">
-                        <div className="flex p-1.5 bg-white/5 rounded-full border border-white/5">
-                          <button type="button" onClick={() => setNewType(VehicleType.MOTO)} className={`flex-1 py-4 rounded-full flex items-center justify-center gap-3 transition-all ${newType === VehicleType.MOTO ? 'bg-gold text-black shadow-lg' : 'text-white/40 hover:text-white'}`}>
-                            <span className="material-symbols-outlined">motorcycle</span>
-                            <span className="text-[11px] font-bold uppercase tracking-widest">MOTO</span>
-                          </button>
-                          <button type="button" onClick={() => setNewType(VehicleType.CARRO)} className={`flex-1 py-4 rounded-full flex items-center justify-center gap-3 transition-all ${newType === VehicleType.CARRO ? 'bg-gold text-black shadow-lg' : 'text-white/40 hover:text-white'}`}>
-                            <span className="material-symbols-outlined">directions_car</span>
-                            <span className="text-[11px] font-bold uppercase tracking-widest">CARRO</span>
-                          </button>
-                        </div>
-
-                        {/* Checkbox 0 KM */}
-                        <div className="flex items-center gap-3 p-4 bg-gold/10 border border-gold/20 rounded-2xl">
-                          <input
-                            type="checkbox"
-                            id="isZeroKm"
-                            checked={isZeroKm}
-                            onChange={(e) => {
-                              setIsZeroKm(e.target.checked);
-                              if (e.target.checked) {
-                                setNewKM('0');
-                              }
-                            }}
-                            className="w-5 h-5 rounded border-gold/30 text-gold focus:ring-gold"
-                          />
-                          <label htmlFor="isZeroKm" className="text-sm font-bold text-gold uppercase tracking-wider cursor-pointer">
-                            ✨ Veículo 0 KM
-                          </label>
-                        </div>
-
-                        <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
-                          <div className="space-y-6">
-                            <div>
-                              <h4 className="text-[10px] text-gold font-bold uppercase tracking-widest mb-4">Fotos do Veículo (Máx 6)</h4>
-                              <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-                                {imagePreviews.map((url, i) => (
-                                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-black border border-white/10 group">
-                                    <img src={url} className="w-full h-full object-cover" />
-                                    <button type="button" onClick={() => removeMedia(i, 'image')} className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded-full"><span className="material-symbols-outlined text-[14px]">close</span></button>
-                                    {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-gold/90 text-black text-[7px] font-bold text-center py-0.5 uppercase">Capa</div>}
-                                  </div>
-                                ))}
-                                {imagePreviews.length < 6 && (
-                                  <button type="button" disabled={isUploading} onClick={() => imageInputRef.current?.click()} className={`aspect-square bg-surface-light border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'text-white/20 hover:border-gold hover:text-gold'}`}>
-                                    {isUploading ? <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">add_a_photo</span>}
-                                  </button>
-                                )}
-                              </div>
-                              <input type="file" ref={imageInputRef} className="hidden" accept="image/*" multiple onChange={(e) => handleFileChange(e, 'image')} />
-                            </div>
-
-                            {imagePreviews.length > 0 && (
-                              <div className="bg-white/5 p-4 rounded-xl border border-white/5 mb-6">
-                                <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-3 block">Ajustar Posição da Foto Principal (Capa)</label>
-                                <div className="flex gap-4 items-center">
-                                  <div className="w-20 h-20 rounded-lg overflow-hidden relative border border-white/20">
-                                    <img src={imagePreviews[0]} className="w-full h-full object-cover" style={{ objectPosition: newImagePos }} />
-                                  </div>
-                                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                      <div className="flex justify-between mb-1">
-                                        <span className="text-[8px] text-white/50 uppercase">Horizontal</span>
-                                        <span className="text-[8px] text-white/50">{newImagePos.split(' ')[0]}</span>
-                                      </div>
-                                      <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        value={parseInt(newImagePos.split(' ')[0])}
-                                        onChange={(e) => setNewImagePos(`${e.target.value}% ${newImagePos.split(' ')[1]}`)}
-                                        className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                                      />
-                                    </div>
-                                    <div>
-                                      <div className="flex justify-between mb-1">
-                                        <span className="text-[8px] text-white/50 uppercase">Vertical</span>
-                                        <span className="text-[8px] text-white/50">{newImagePos.split(' ')[1]}</span>
-                                      </div>
-                                      <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        value={parseInt(newImagePos.split(' ')[1])}
-                                        onChange={(e) => setNewImagePos(`${newImagePos.split(' ')[0]} ${e.target.value}%`)}
-                                        className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            <div>
-                              <h4 className="text-[10px] text-gold font-bold uppercase tracking-widest mb-4">Vídeos (Opcional - Máx 3)</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {videoPreviews.map((url, i) => (
-                                  <div key={i} className="relative aspect-video rounded-xl overflow-hidden bg-black border border-white/10">
-                                    <video src={url} className="w-full h-full object-cover" muted />
-                                    <button type="button" onClick={() => removeMedia(i, 'video')} className="absolute top-2 right-2 bg-black/70 text-white p-1.5 rounded-full"><span className="material-symbols-outlined">close</span></button>
-                                  </div>
-                                ))}
-                                {videoPreviews.length < 3 && (
-                                  <button type="button" disabled={isUploading} onClick={() => videoInputRef.current?.click()} className={`aspect-video bg-surface-light border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'text-white/20 hover:border-gold hover:text-gold'}`}>
-                                    {isUploading ? <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">videocam</span>}
-                                  </button>
-                                )}
-                              </div>
-                              <input type="file" ref={videoInputRef} className="hidden" accept="video/*" multiple onChange={(e) => handleFileChange(e, 'video')} />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            <div className="md:col-span-2">
-                              <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Modelo Comercial</label>
-                              <input value={newName} onChange={e => setNewName(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none uppercase" placeholder="Ex: BMW S1000RR M PACK" />
-                            </div>
-                            <div>
-                              <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">KM Atual</label>
-                              <input value={newKM} onChange={e => setNewKM(e.target.value)} disabled={isZeroKm} className={`w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none ${isZeroKm ? 'opacity-50 cursor-not-allowed' : ''}`} placeholder={isZeroKm ? "0 KM" : "Ex: 500"} />
-                            </div>
-                            <div>
-                              <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Preço (R$)</label>
-                              <input
-                                value={newPrice}
-                                onChange={e => setNewPrice(formatCurrency(e.target.value))}
-                                className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none"
-                                placeholder="125.000"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Ano / Modelo</label>
-                              <input value={newYear} onChange={e => setNewYear(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="2024" />
-                            </div>
-                            <div>
-                              <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cor</label>
-                              <input value={newColor} onChange={e => setNewColor(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none uppercase" placeholder="PRETO" />
-                            </div>
-                            {newType === VehicleType.MOTO ? (
-                              <div>
-                                <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cilindradas (CC)</label>
-                                <input value={newDisplacement} onChange={e => setNewDisplacement(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="1000" />
-                              </div>
-                            ) : (
-                              <>
-                                <div>
-                                  <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Câmbio</label>
-                                  <select value={newTransmission} onChange={e => setNewTransmission(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none">
-                                    <option value="Automático">Automático</option>
-                                    <option value="Manual">Manual</option>
-                                  </select>
-                                </div>
-                              </>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-white/5">
-                            {[
-                              { label: 'Único Dono', state: isSingleOwner, set: setIsSingleOwner, tooltip: 'Apenas um proprietário.' },
-                              { label: 'DUT na Mão', state: hasDut, set: setHasDut, tooltip: 'Documentação pronta.' },
-                              { label: 'Manual', state: hasManual, set: setHasManual, tooltip: 'Acompanha manual.' },
-                              { label: 'Chave Reserva', state: hasSpareKey, set: setHasSpareKey, tooltip: 'Possui chave reserva.' },
-                              { label: 'Promoção', state: isPromoSemana, set: setIsPromoSemana, tooltip: 'Marcar com tag de promoção.' },
-                              { label: 'Destaque', state: isFeatured, set: setIsFeatured, tooltip: 'Exibir no topo ou carrossel.' },
-                            ].map(item => (
-                              <div key={item.label} className="relative flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 cursor-pointer hover:border-gold/30 transition-all group/tooltip">
-                                <input type="checkbox" id={`check-${item.label}`} checked={item.state} onChange={e => item.set(e.target.checked)} className="accent-gold w-4 h-4 cursor-pointer" />
-                                <label htmlFor={`check-${item.label}`} className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer">
-                                  <span className="text-[10px] text-white/60 uppercase font-bold tracking-widest truncate">{item.label}</span>
-                                </label>
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 p-4 bg-black/95 border border-gold/20 rounded-2xl text-[9px] text-white/70 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50">
-                                  {item.tooltip}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <button type="submit" disabled={isUploading} className={`w-full py-6 bg-gold text-black text-[13px] font-heading tracking-[0.3em] rounded-full shadow-2xl transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gold-light active:scale-[0.98]'}`}>
-                          {isUploading ? 'PROCESSANDO MÍDIA...' : 'PUBLICAR NO CATÁLOGO'}
-                        </button>
-                      </form>
-                    )
-                  }
-
-                  {
-                    activeTab === 'inventory' && (
-                      <div className="space-y-4 pb-10">
-                        {vehicles.filter(v => !v.isSold).map(v => (
-                          <div key={v.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 flex items-start gap-4 group hover:border-white/20 transition-all">
-                            <img src={v.imageUrl} className="w-20 h-20 rounded-2xl object-cover border border-white/5 shrink-0 mt-1" />
-                            <div className="flex-1 min-w-0">
-                              {editingId === v.id ? (
-                                <div className="flex flex-col gap-2">
-                                  <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full bg-surface-light border border-gold/50 text-white text-[11px] px-3 py-1.5 rounded-lg focus:outline-none uppercase font-heading tracking-wider" />
-                                  <input
-                                    value={editPrice}
-                                    onChange={(e) => setEditPrice(formatCurrency(e.target.value))}
-                                    className="w-full bg-surface-light border border-gold/50 text-gold text-[10px] px-3 py-1.5 rounded-lg focus:outline-none font-bold"
-                                  />
-                                  <input value={editSpecs} onChange={e => setEditSpecs(e.target.value)} className="w-full bg-surface-light border border-white/10 text-white text-[10px] px-3 py-1.5 rounded-lg focus:outline-none" placeholder="Specs" />
-                                </div>
-                              ) : (
-                                <div className="cursor-pointer group/info" onClick={() => startEditing(v)}>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="text-white text-xs font-heading tracking-wider truncate uppercase group-hover/info:text-gold transition-colors">{v.name}</h4>
-                                    {v.isFeatured && <span className="text-[8px] bg-gold text-black px-1.5 rounded font-bold uppercase">Destaque</span>}
-                                  </div>
-                                  <p className="text-gold text-[10px] font-bold">R$ {typeof v.price === 'number' ? v.price.toLocaleString('pt-BR') : v.price}</p>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex flex-col items-center gap-2 pt-1 shrink-0">
-                              {editingId === v.id ? (
-                                <>
-                                  <button onClick={() => saveInlineEdit(v.id)} className="w-10 h-10 flex items-center justify-center bg-gold text-black rounded-full shadow-lg hover:scale-110 transition-all"><span className="material-symbols-outlined text-xl">check</span></button>
-                                  <button onClick={() => setEditingId(null)} className="w-10 h-10 flex items-center justify-center bg-white/10 text-white/50 rounded-full hover:bg-white/20 transition-all"><span className="material-symbols-outlined text-xl">close</span></button>
-                                </>
-                              ) : (
-                                <>
-                                  <button onClick={() => startEditing(v)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-blue-400 hover:bg-blue-400/20 transition-all" title="Editar">
-                                    <span className="material-symbols-outlined text-[18px]">edit</span>
-                                  </button>
-                                  <button onClick={() => onUpdateVehicle(v.id, { isFeatured: !v.isFeatured })} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isFeatured ? 'bg-gold/20 text-gold' : 'bg-white/5 text-white/20 hover:text-gold hover:bg-gold/10'}`} title={v.isFeatured ? "Remover Destaque" : "Destacar Veículo"}>
-                                    <span className="material-symbols-outlined text-[18px]">star</span>
-                                  </button>
-                                  <button onClick={() => setConfirmSoldId(v.id)} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isSold ? 'bg-green-500/20 text-green-500' : 'bg-white/5 text-yellow-500 hover:bg-yellow-500/20'}`} title={v.isSold ? "Marcar como Disponível" : "Marcar como Vendido"}>
-                                    <span className="material-symbols-outlined text-[18px]">{v.isSold ? 'check_circle' : 'sell'}</span>
-                                  </button>
-                                  <button onClick={() => onDeleteVehicle(v.id)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-red-500 hover:bg-red-500/20 transition-all" title="Excluir">
-                                    <span className="material-symbols-outlined text-[18px]">delete</span>
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </div>
+          {
+            activeTab === 'logs' && (
+              <div className="space-y-8 animate-in fade-in duration-300">
+                {/* Seção de Auditoria (Admin Actions) */}
+                <div className="space-y-4">
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-[0.4em] border-l-2 border-gold pl-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm">security</span> Auditoria (Suas Ações)
+                  </h3>
+                  <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
+                        <tr>
+                          <th className="p-4">Data</th>
+                          <th className="p-4">Ação</th>
+                          <th className="p-4">Alvo</th>
+                          <th className="p-4 hidden sm:table-cell">Detalhes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[10px] text-white/70">
+                        {auditLogs.map(log => (
+                          <tr key={log.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td className="p-4 whitespace-nowrap opacity-60">
+                              {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR') : '-'}
+                            </td>
+                            <td className="p-4">
+                              <span className={`px-2 py-1 rounded text-[8px] font-bold uppercase ${log.action_type === 'CRIAR' ? 'bg-green-500/20 text-green-400' :
+                                log.action_type === 'EXCLUIR' ? 'bg-red-500/20 text-red-400' :
+                                  'bg-blue-500/20 text-blue-400'
+                                }`}>
+                                {log.action_type}
+                              </span>
+                            </td>
+                            <td className="p-4 font-bold text-white">{log.target}</td>
+                            <td className="p-4 hidden sm:table-cell opacity-60 truncate max-w-[200px]">{log.details}</td>
+                          </tr>
                         ))}
-                        {vehicles.filter(v => !v.isSold).length === 0 && (
-                          <div className="text-center py-12 text-white/20 text-xs font-bold uppercase tracking-widest bg-black/20 rounded-xl">
-                            Nenhum veículo em estoque
-                          </div>
+                        {auditLogs.length === 0 && (
+                          <tr><td colSpan={4} className="p-8 text-center text-white/20">Nenhuma ação registrada.</td></tr>
                         )}
-                      </div>
-                    )
-                  }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
 
-                  {
-                    activeTab === 'sold' && (
-                      <div className="space-y-4 pb-10">
-                        {vehicles.filter(v => v.isSold).map(v => (
-                          <div key={v.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 flex items-start gap-4 grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition-all">
-                            <img src={v.imageUrl} className="w-16 h-16 rounded-2xl object-cover border border-white/5 shrink-0 mt-1" />
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-white/50 text-xs font-heading tracking-wider truncate uppercase line-through">{v.name}</h4>
-                              <span className="text-[9px] text-green-500/80 uppercase font-bold tracking-wider block mt-1">VENDIDO</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2 pt-1 shrink-0">
-                              <button onClick={() => setConfirmSoldId(v.id)} className="w-8 h-8 flex items-center justify-center rounded-full bg-green-500/20 text-green-500 transition-all" title="Marcar como Disponível">
-                                <span className="material-symbols-outlined text-[18px]">undo</span>
-                              </button>
-                              <button onClick={() => onDeleteVehicle(v.id)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-red-500 hover:bg-red-500/20 transition-all" title="Excluir do Histórico">
-                                <span className="material-symbols-outlined text-[18px]">delete</span>
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                        {vehicles.filter(v => v.isSold).length === 0 && (
-                          <div className="text-center py-12 text-white/20 text-xs font-bold uppercase tracking-widest bg-black/20 rounded-xl">
-                            Nenhum veículo vendido
-                          </div>
+                {/* Seção de Acessos (Visitas) */}
+                <div className="space-y-4">
+                  <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.4em] border-l-2 border-blue-400 pl-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm">public</span> Visitas Recentes
+                  </h3>
+                  <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
+                        <tr>
+                          <th className="p-4">Data</th>
+                          <th className="p-4">Local</th>
+                          <th className="p-4">Dispositivo</th>
+                          <th className="p-4 hidden sm:table-cell">IP</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[10px] text-white/70">
+                        {accessLogs.map(log => {
+                          // Tentar parsear o JSON para a visualização resumida
+                          let deviceInfo = log.device_info;
+                          let isp = '';
+                          try {
+                            const details = JSON.parse(log.device_info);
+                            deviceInfo = `${details.platform} - ${details.browser || 'Navegador'} (${details.screen})`;
+                            isp = details.isp;
+                          } catch (e) {
+                            // Fallback se for texto antigo
+                          }
+
+                          return (
+                            <tr
+                              key={log.id}
+                              onClick={() => setSelectedLog(log)}
+                              className="border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer group"
+                              title="Clique para ver detalhes completos"
+                            >
+                              <td className="p-4 whitespace-nowrap opacity-60 group-hover:opacity-100 group-hover:text-gold transition-all">
+                                {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR') : '-'}
+                              </td>
+                              <td className="p-4 font-bold text-white">
+                                {log.location}
+                                <div className="text-[8px] opacity-40 font-normal">{isp}</div>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="material-symbols-outlined text-sm opacity-50">
+                                    {log.device_type === 'Mobile' ? 'smartphone' : 'computer'}
+                                  </span>
+                                  <span>{log.device_type}</span>
+                                </div>
+                                <div className="text-[8px] opacity-40 hidden sm:block truncate max-w-[150px]">{deviceInfo}</div>
+                              </td>
+                              <td className="p-4 hidden sm:table-cell font-mono opacity-50 group-hover:text-white transition-all">{log.ip}</td>
+                            </tr>
+                          );
+                        })}
+                        {accessLogs.length === 0 && (
+                          <tr><td colSpan={4} className="p-8 text-center text-white/20">Nenhum acesso registrado.</td></tr>
                         )}
-                      </div>
-                    )
-                  }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )
+          }
 
-                  {
-                    activeTab === 'logs' && (
-                      <div className="space-y-8 animate-in fade-in duration-300">
-                        {/* Seção de Auditoria (Admin Actions) */}
-                        <div className="space-y-4">
-                          <h3 className="text-gold text-[10px] font-bold uppercase tracking-[0.4em] border-l-2 border-gold pl-3 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-sm">security</span> Auditoria (Suas Ações)
-                          </h3>
-                          <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
-                            <table className="w-full text-left">
-                              <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
-                                <tr>
-                                  <th className="p-4">Data</th>
-                                  <th className="p-4">Ação</th>
-                                  <th className="p-4">Alvo</th>
-                                  <th className="p-4 hidden sm:table-cell">Detalhes</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-[10px] text-white/70">
-                                {auditLogs.map(log => (
-                                  <tr key={log.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                    <td className="p-4 whitespace-nowrap opacity-60">
-                                      {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR') : '-'}
-                                    </td>
-                                    <td className="p-4">
-                                      <span className={`px-2 py-1 rounded text-[8px] font-bold uppercase ${log.action_type === 'CRIAR' ? 'bg-green-500/20 text-green-400' :
-                                        log.action_type === 'EXCLUIR' ? 'bg-red-500/20 text-red-400' :
-                                          'bg-blue-500/20 text-blue-400'
-                                        }`}>
-                                        {log.action_type}
-                                      </span>
-                                    </td>
-                                    <td className="p-4 font-bold text-white">{log.target}</td>
-                                    <td className="p-4 hidden sm:table-cell opacity-60 truncate max-w-[200px]">{log.details}</td>
-                                  </tr>
-                                ))}
-                                {auditLogs.length === 0 && (
-                                  <tr><td colSpan={4} className="p-8 text-center text-white/20">Nenhuma ação registrada.</td></tr>
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
+          {/* Modal de Detalhes de Log */}
+          {selectedLog && (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedLog(null)}>
+              <div className="bg-surface border border-white/10 p-6 rounded-2xl w-full max-w-lg shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setSelectedLog(null)} className="absolute top-4 right-4 text-white/30 hover:text-white">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
 
-                        {/* Seção de Acessos (Visitas) */}
-                        <div className="space-y-4">
-                          <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.4em] border-l-2 border-blue-400 pl-3 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-sm">public</span> Visitas Recentes
-                          </h3>
-                          <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
-                            <table className="w-full text-left">
-                              <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
-                                <tr>
-                                  <th className="p-4">Data</th>
-                                  <th className="p-4">Local</th>
-                                  <th className="p-4">Dispositivo</th>
-                                  <th className="p-4 hidden sm:table-cell">IP</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-[10px] text-white/70">
-                                {accessLogs.map(log => {
-                                  // Tentar parsear o JSON para a visualização resumida
-                                  let deviceInfo = log.device_info;
-                                  let isp = '';
-                                  try {
-                                    const details = JSON.parse(log.device_info);
-                                    deviceInfo = `${details.platform} - ${details.browser || 'Navegador'} (${details.screen})`;
-                                    isp = details.isp;
-                                  } catch (e) {
-                                    // Fallback se for texto antigo
-                                  }
+                <h3 className="text-gold font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
+                  <span className="material-symbols-outlined">fingerprint</span> Detalhes do Acesso
+                </h3>
 
-                                  return (
-                                    <tr
-                                      key={log.id}
-                                      onClick={() => setSelectedLog(log)}
-                                      className="border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer group"
-                                      title="Clique para ver detalhes completos"
-                                    >
-                                      <td className="p-4 whitespace-nowrap opacity-60 group-hover:opacity-100 group-hover:text-gold transition-all">
-                                        {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR') : '-'}
-                                      </td>
-                                      <td className="p-4 font-bold text-white">
-                                        {log.location}
-                                        <div className="text-[8px] opacity-40 font-normal">{isp}</div>
-                                      </td>
-                                      <td className="p-4">
-                                        <div className="flex items-center gap-2">
-                                          <span className="material-symbols-outlined text-sm opacity-50">
-                                            {log.device_type === 'Mobile' ? 'smartphone' : 'computer'}
-                                          </span>
-                                          <span>{log.device_type}</span>
-                                        </div>
-                                        <div className="text-[8px] opacity-40 hidden sm:block truncate max-w-[150px]">{deviceInfo}</div>
-                                      </td>
-                                      <td className="p-4 hidden sm:table-cell font-mono opacity-50 group-hover:text-white transition-all">{log.ip}</td>
-                                    </tr>
-                                  );
-                                })}
-                                {accessLogs.length === 0 && (
-                                  <tr><td colSpan={4} className="p-8 text-center text-white/20">Nenhum acesso registrado.</td></tr>
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  }
-
-                  {/* Modal de Detalhes de Log */}
-                  {selectedLog && (
-                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedLog(null)}>
-                      <div className="bg-surface border border-white/10 p-6 rounded-2xl w-full max-w-lg shadow-2xl relative" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setSelectedLog(null)} className="absolute top-4 right-4 text-white/30 hover:text-white">
-                          <span className="material-symbols-outlined">close</span>
-                        </button>
-
-                        <h3 className="text-gold font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
-                          <span className="material-symbols-outlined">fingerprint</span> Detalhes do Acesso
-                        </h3>
-
-                        <div className="space-y-4 text-sm text-white/80">
-                          <div className="grid grid-cols-2 gap-4 bg-white/5 p-4 rounded-xl">
-                            <div>
-                              <span className="text-[10px] uppercase text-white/30 block">IP</span>
-                              <span className="font-mono text-gold">{selectedLog.ip}</span>
-                            </div>
-                            <div>
-                              <span className="text-[10px] uppercase text-white/30 block">Data</span>
-                              <span>{selectedLog.created_at ? new Date(selectedLog.created_at).toLocaleString('pt-BR') : '-'}</span>
-                            </div>
-                          </div>
-
-                          <div className="bg-white/5 p-4 rounded-xl space-y-3">
-                            <div>
-                              <span className="text-[10px] uppercase text-white/30 block mb-1">Localização</span>
-                              <div className="text-lg">{selectedLog.location}</div>
-                            </div>
-
-                            <hr className="border-white/5" />
-
-                            <div>
-                              <span className="text-[10px] uppercase text-white/30 block mb-1">Dados Técnicos</span>
-                              <pre className="text-[10px] font-mono bg-black/50 p-2 rounded-lg overflow-x-auto text-green-400/80">
-                                {(() => {
-                                  try {
-                                    return JSON.stringify(JSON.parse(selectedLog.device_info), null, 2);
-                                  } catch (e) {
-                                    return selectedLog.device_info;
-                                  }
-                                })()}
-                              </pre>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                <div className="space-y-4 text-sm text-white/80">
+                  <div className="grid grid-cols-2 gap-4 bg-white/5 p-4 rounded-xl">
+                    <div>
+                      <span className="text-[10px] uppercase text-white/30 block">IP</span>
+                      <span className="font-mono text-gold">{selectedLog.ip}</span>
                     </div>
-                  )}
-
-
-
-                  {confirmSoldId && (
-                    <div className="absolute inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-8">
-                      <div className="bg-surface border border-white/10 p-10 rounded-[2.5rem] max-w-sm w-full text-center space-y-8 shadow-3xl">
-                        <span className="material-symbols-outlined text-red-500 text-5xl">shopping_cart_checkout</span>
-                        <h3 className="text-white font-heading text-xl uppercase tracking-wider">Confirmar Alteração</h3>
-                        <p className="text-white/50 text-xs">
-                          {vehicles.find(v => v.id === confirmSoldId)?.isSold
-                            ? "Deseja marcar este veículo como DISPONÍVEL novamente?"
-                            : "Deseja marcar este veículo como VENDIDO? Ele sairá da vitrine principal."}
-                        </p>
-                        <div className="flex flex-col gap-3">
-                          <button
-                            onClick={() => {
-                              const v = vehicles.find(v => v.id === confirmSoldId);
-                              if (v) onUpdateVehicle(confirmSoldId, { isSold: !v.isSold });
-                              setConfirmSoldId(null);
-                            }}
-                            className="w-full py-5 bg-gold text-black text-[11px] font-bold uppercase tracking-widest rounded-full hover:brightness-110"
-                          >
-                            Sim, confirmar
-                          </button>
-                          <button onClick={() => setConfirmSoldId(null)} className="w-full py-5 bg-white/5 text-white/50 text-[11px] font-bold uppercase tracking-widest rounded-full hover:bg-white/10 hover:text-white transition-all">Cancelar</button>
-                        </div>
-                      </div>
+                    <div>
+                      <span className="text-[10px] uppercase text-white/30 block">Data</span>
+                      <span>{selectedLog.created_at ? new Date(selectedLog.created_at).toLocaleString('pt-BR') : '-'}</span>
                     </div>
-                  )}
+                  </div>
+
+                  <div className="bg-white/5 p-4 rounded-xl space-y-3">
+                    <div>
+                      <span className="text-[10px] uppercase text-white/30 block mb-1">Localização</span>
+                      <div className="text-lg">{selectedLog.location}</div>
+                    </div>
+
+                    <hr className="border-white/5" />
+
+                    <div>
+                      <span className="text-[10px] uppercase text-white/30 block mb-1">Dados Técnicos</span>
+                      <pre className="text-[10px] font-mono bg-black/50 p-2 rounded-lg overflow-x-auto text-green-400/80">
+                        {(() => {
+                          try {
+                            return JSON.stringify(JSON.parse(selectedLog.device_info), null, 2);
+                          } catch (e) {
+                            return selectedLog.device_info;
+                          }
+                        })()}
+                      </pre>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          );
+          )}
+
+
+
+          {confirmSoldId && (
+            <div className="absolute inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-8">
+              <div className="bg-surface border border-white/10 p-10 rounded-[2.5rem] max-w-sm w-full text-center space-y-8 shadow-3xl">
+                <span className="material-symbols-outlined text-red-500 text-5xl">shopping_cart_checkout</span>
+                <h3 className="text-white font-heading text-xl uppercase tracking-wider">Confirmar Alteração</h3>
+                <p className="text-white/50 text-xs">
+                  {vehicles.find(v => v.id === confirmSoldId)?.isSold
+                    ? "Deseja marcar este veículo como DISPONÍVEL novamente?"
+                    : "Deseja marcar este veículo como VENDIDO? Ele sairá da vitrine principal."}
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => {
+                      const v = vehicles.find(v => v.id === confirmSoldId);
+                      if (v) {
+                        onUpdateVehicle(confirmSoldId, { isSold: !v.isSold });
+                        if (user?.email) logger.logAction(user.email, 'EDITAR', v.name, v.isSold ? 'Marcou como Disponível' : 'Marcou como Vendido');
+                      }
+                      setConfirmSoldId(null);
+                    }}
+                    className="w-full py-5 bg-gold text-black text-[11px] font-bold uppercase tracking-widest rounded-full hover:brightness-110"
+                  >
+                    Sim, confirmar
+                  </button>
+                  <button onClick={() => setConfirmSoldId(null)} className="w-full py-5 bg-white/5 text-white/50 text-[11px] font-bold uppercase tracking-widest rounded-full hover:bg-white/10 hover:text-white transition-all">Cancelar</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
-          export default AdminPanel;
+export default AdminPanel;

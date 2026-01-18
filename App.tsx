@@ -106,8 +106,13 @@ const App: React.FC = () => {
 
   const onDelete = async (id: string) => {
     if (confirm("Deseja realmente excluir este veículo?")) {
+      const v = vehicles.find(x => x.id === id);
       await db.deleteVehicle(id);
       setVehicles(prev => prev.filter(x => x.id !== id));
+
+      if (user?.email && v) {
+        logger.logAction(user.email, 'EXCLUIR', v.name, 'Veículo excluído permanentemente');
+      }
     }
   };
 
