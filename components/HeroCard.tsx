@@ -74,7 +74,7 @@ const HeroCard: React.FC<HeroCardProps> = ({ vehicle, onInterest, onViewDetails 
                 </div>
             </div>
         </div>
-        </div >
+
     );
 };
 
