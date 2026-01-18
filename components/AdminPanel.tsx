@@ -335,7 +335,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             { id: 'inventory', icon: 'garage_home', label: 'Estoque' },
             { id: 'upload', icon: 'add_circle', label: 'Novo Veículo' },
             { id: 'sold', icon: 'sell', label: 'Vendidos' },
-            { id: 'logs', icon: 'monitoring', label: 'Monitoramento' }, // Nova Tab
+            { id: 'logs', icon: 'monitoring', label: 'Monitoramento [NOVO]' }, // Nova Tab
           ].map(tab => (
             <button
               key={tab.id}
@@ -812,8 +812,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                             </td>
                             <td className="p-4">
                               <span className={`px-2 py-1 rounded text-[8px] font-bold uppercase ${log.action_type === 'CRIAR' ? 'bg-green-500/20 text-green-400' :
-                                  log.action_type === 'EXCLUIR' ? 'bg-red-500/20 text-red-400' :
-                                    'bg-blue-500/20 text-blue-400'
+                                log.action_type === 'EXCLUIR' ? 'bg-red-500/20 text-red-400' :
+                                  'bg-blue-500/20 text-blue-400'
                                 }`}>
                                 {log.action_type}
                               </span>
