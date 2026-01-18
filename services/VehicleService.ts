@@ -24,17 +24,12 @@ class VehicleService {
         return this.getFallbackVehicles();
       }
 
-      // Converter dados do Supabase
-      const supabaseVehicles = data.map(v => this.convertFromDatabase(v));
-
       // Conversão
       const supabaseVehicles = data.map(v => this.convertFromDatabase(v));
 
       // Se temos dados do Supabase, ATUALIZAMOS o cache local com a verdade do servidor.
       // Isso remove "fantasmas" (veículos deletados em outros dispositivos).
       localStorage.setItem(this.storageKey, JSON.stringify(supabaseVehicles));
-
-      return supabaseVehicles;
 
       return supabaseVehicles;
     } catch (error) {
