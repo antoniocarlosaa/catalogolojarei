@@ -595,47 +595,50 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {numbers.map((n, i) => (
-                      <div key={i} className="relative flex items-center gap-2">
-                        {/* Toggle Ativo/Inativo */}
-                        <div className="flex flex-col items-center">
-                          <button
-                            onClick={() => {
-                              const next = [...numbers];
-                              const current = next[i];
-                              if (current.startsWith('OFF:')) {
-                                next[i] = current.replace('OFF:', '');
-                              } else {
-                                next[i] = `OFF:${current}`;
-                              }
-                              setNumbers(next);
-                            }}
-                            className={`w-10 h-6 rounded-full transition-colors flex items-center px-1 ${!n.startsWith('OFF:') ? 'bg-green-500/20' : 'bg-red-500/20'}`}
-                            title={!n.startsWith('OFF:') ? 'Número Ativo' : 'Número Inativo'}
-                          >
-                            <div className={`w-4 h-4 rounded-full shadow-md transition-transform ${!n.startsWith('OFF:') ? 'bg-green-500 translate-x-4' : 'bg-red-500 translate-x-0'}`} />
-                          </button>
-                          <span className="text-[8px] mt-1 font-bold text-white/30 uppercase">{!n.startsWith('OFF:') ? 'Ativo' : 'Inativo'}</span>
-                        </div>
+                      <div key={i} className="flex flex-col gap-1">
+                        <label className="text-[9px] font-bold text-white/50 uppercase tracking-widest ml-1">Atendente {i + 1}</label>
+                        <div className="relative flex items-center gap-2">
+                          {/* Toggle Ativo/Inativo */}
+                          <div className="flex flex-col items-center">
+                            <button
+                              onClick={() => {
+                                const next = [...numbers];
+                                const current = next[i];
+                                if (current.startsWith('OFF:')) {
+                                  next[i] = current.replace('OFF:', '');
+                                } else {
+                                  next[i] = `OFF:${current}`;
+                                }
+                                setNumbers(next);
+                              }}
+                              className={`w-10 h-6 rounded-full transition-colors flex items-center px-1 ${!n.startsWith('OFF:') ? 'bg-green-500/20' : 'bg-red-500/20'}`}
+                              title={!n.startsWith('OFF:') ? 'Número Ativo' : 'Número Inativo'}
+                            >
+                              <div className={`w-4 h-4 rounded-full shadow-md transition-transform ${!n.startsWith('OFF:') ? 'bg-green-500 translate-x-4' : 'bg-red-500 translate-x-0'}`} />
+                            </button>
+                            <span className="text-[8px] mt-1 font-bold text-white/30 uppercase">{!n.startsWith('OFF:') ? 'Ativo' : 'Inativo'}</span>
+                          </div>
 
-                        <div className="relative flex-1">
-                          <input
-                            value={n.replace('OFF:', '')}
-                            onChange={(e) => {
-                              const next = [...numbers];
-                              const isOff = next[i].startsWith('OFF:');
-                              const cleanVal = e.target.value.replace(/\D/g, '');
-                              next[i] = isOff ? `OFF:${cleanVal}` : cleanVal;
-                              setNumbers(next);
-                            }}
-                            className={`w-full bg-surface-light border text-white text-xs px-4 py-4 rounded-xl outline-none focus:border-gold ${n.replace('OFF:', '').length === 13 ? 'border-green-500/50' : 'border-white/5'} ${n.startsWith('OFF:') ? 'opacity-50' : ''}`}
-                            placeholder="Ex: 5598988887777"
-                            disabled={n.startsWith('OFF:')}
-                          />
-                          {n.replace('OFF:', '').length > 0 && (
-                            <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold ${n.replace('OFF:', '').length >= 12 ? 'text-green-500' : 'text-red-500'}`}>
-                              {n.replace('OFF:', '').length} dígitos
-                            </span>
-                          )}
+                          <div className="relative flex-1">
+                            <input
+                              value={n.replace('OFF:', '')}
+                              onChange={(e) => {
+                                const next = [...numbers];
+                                const isOff = next[i].startsWith('OFF:');
+                                const cleanVal = e.target.value.replace(/\D/g, '');
+                                next[i] = isOff ? `OFF:${cleanVal}` : cleanVal;
+                                setNumbers(next);
+                              }}
+                              className={`w-full bg-surface-light border text-white text-xs px-4 py-4 rounded-xl outline-none focus:border-gold ${n.replace('OFF:', '').length === 13 ? 'border-green-500/50' : 'border-white/5'} ${n.startsWith('OFF:') ? 'opacity-50' : ''}`}
+                              placeholder="Ex: 5598988887777"
+                              disabled={n.startsWith('OFF:')}
+                            />
+                            {n.replace('OFF:', '').length > 0 && (
+                              <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold ${n.replace('OFF:', '').length >= 12 ? 'text-green-500' : 'text-red-500'}`}>
+                                {n.replace('OFF:', '').length} dígitos
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}

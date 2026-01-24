@@ -28,6 +28,10 @@ const App: React.FC = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
+  // WhatsApp Selector State
+  const [showWhatsappModal, setShowWhatsappModal] = useState(false);
+  const [whatsappTarget, setWhatsappTarget] = useState<Vehicle | null>(null);
+
   // Registrar Visita (apenas uma vez na montagem)
   useEffect(() => {
     logger.logVisit();
@@ -93,38 +97,16 @@ const App: React.FC = () => {
   const carrosEstoque = useMemo(() => filteredVehicles.filter(v => v.type === VehicleType.CARRO && !v.isSold), [filteredVehicles]);
 
   const handleInterest = (vehicle: Vehicle) => {
-    const validNumbers = settings.whatsappNumbers
-      .filter(n => !n.startsWith('OFF:')) // Ignora números desativados logicamente
-      .map(n => n.replace(/\D/g, '').replace(/^0+/, ''))
-      .filter(n => n.length >= 8); // Relaxado para 8 dígitos para evitar bloqueio
+    // Verificar se existem números ativos antes de abrir modal
+    const activeExists = settings.whatsappNumbers.some(n => !n.startsWith('OFF:') && n.length > 5);
 
-    if (validNumbers.length === 0) {
-      alert(`Erro: Nenhum número válido.\nConfigurado: ${JSON.stringify(settings.whatsappNumbers)}`);
+    if (!activeExists) {
+      alert("Nenhum atendente disponível no momento. Tente mais tarde.");
       return;
     }
 
-    // Lógica de Peso: O primeiro número da lista tem 5x mais chance de ser escolhido.
-    // Os demais concorrem com peso 1.
-    const lotteryPool: string[] = [];
-    validNumbers.forEach((num, index) => {
-      const weight = index === 0 ? 5 : 1;
-      for (let i = 0; i < weight; i++) {
-        lotteryPool.push(num);
-      }
-    });
-
-    const randomIndex = Math.floor(Math.random() * lotteryPool.length);
-    const rawNumber = lotteryPool[randomIndex];
-
-    // Confiança total no que foi configurado no Painel.
-    // O usuário deve salvar como 5598...
-    const finalNumber = rawNumber;
-
-    const link = `${window.location.origin}?v=${vehicle.id}`;
-    const message = encodeURIComponent(`Olá! Vi no catálogo o veículo: ${vehicle.name}.\nAinda está disponível?\nLink: ${link}`);
-
-    // Usar api.whatsapp.com é mais robusto que wa.me para desktop
-    window.open(`https://api.whatsapp.com/send?phone=${finalNumber}&text=${message}`, '_blank');
+    setWhatsappTarget(vehicle);
+    setShowWhatsappModal(true);
   };
 
 
@@ -323,8 +305,56 @@ const App: React.FC = () => {
         >
           <span className="material-symbols-outlined">arrow_upward</span>
         </button>
-      )
-      }
+      )}
+
+      {/* WHATSAPP SELECTOR MODAL */}
+      {showWhatsappModal && whatsappTarget && (
+        <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowWhatsappModal(false)}>
+          <div className="w-full max-w-sm bg-surface border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-lg font-heading text-white uppercase tracking-wider">Escolha um Atendente</h3>
+                <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Equipe Rei das Motos</p>
+              </div>
+              <button onClick={() => setShowWhatsappModal(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-white/50 hover:text-white transition-colors">
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+              {settings.whatsappNumbers.map((num, idx) => {
+                if (num.startsWith('OFF:') || num.length < 8) return null;
+
+                const cleanNum = num.replace(/\D/g, '').replace(/^0+/, '');
+                // Confiança total no painel (já é Intl format)
+                const finalNum = cleanNum;
+
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      const link = `${window.location.origin}?v=${whatsappTarget.id}`;
+                      const message = encodeURIComponent(`Olá! Vi no catálogo o veículo: ${whatsappTarget.name}.\nAinda está disponível?\nLink: ${link}`);
+                      window.open(`https://api.whatsapp.com/send?phone=${finalNum}&text=${message}`, '_blank');
+                      setShowWhatsappModal(false);
+                    }}
+                    className="w-full p-4 bg-white/5 hover:bg-[#25D366] hover:text-white border border-white/5 hover:border-[#25D366] rounded-2xl flex items-center gap-4 group transition-all active:scale-95"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-[#25D366]/20 group-hover:bg-white/20 flex items-center justify-center text-[#25D366] group-hover:text-white transition-colors">
+                      <span className="material-symbols-outlined">support_agent</span>
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-[9px] text-white/50 group-hover:text-white/80 uppercase font-bold tracking-widest">Disponível</span>
+                      <span className="text-sm font-bold text-white uppercase tracking-wide">Atendente {idx + 1}</span>
+                    </div>
+                    <span className="material-symbols-outlined ml-auto text-white/30 group-hover:text-white text-lg">chevron_right</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

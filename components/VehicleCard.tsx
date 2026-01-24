@@ -187,27 +187,50 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
               <span className="material-symbols-outlined text-base group-hover/btn:translate-x-1 transition-transform">visibility</span>
             </button>
 
-            {/* WhatsApp - Opens WhatsApp */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onInterest(vehicle);
-              }}
-              className="w-full py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold transition-all rounded-full flex items-center justify-center gap-2 group/btn shadow-[0_4px_14px_0_rgba(37,211,102,0.39)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.23)] hover:-translate-y-0.5"
-            >
-              <span className="text-sm font-bold tracking-wide">Whatsapp</span>
-            </button>
+            <div className="mt-3 pt-3 border-t border-white/5 flex gap-2">
+              {/* WhatsApp */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onInterest(vehicle);
+                }}
+                className="flex-1 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold transition-all rounded-full flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(37,211,102,0.39)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.23)] hover:-translate-y-0.5 active:scale-95"
+              >
+                <span className="text-xs font-bold tracking-wide uppercase">WhatsApp</span>
+              </button>
+
+              {/* Share Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `${window.location.origin}?v=${vehicle.id}`;
+                  if (navigator.share) {
+                    navigator.share({
+                      title: vehicle.name,
+                      text: `Confira este veículo: ${vehicle.name}`,
+                      url: url
+                    }).catch(console.error);
+                  } else {
+                    navigator.clipboard.writeText(url);
+                    alert('Link copiado!');
+                  }
+                }}
+                className="w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all hover:-translate-y-0.5 active:scale-95"
+                title="Compartilhar"
+              >
+                <span className="material-symbols-outlined text-sm">share</span>
+              </button>
+            </div>
           </div>
-        </div>
       )}
 
-      {/* Featured Variant Button (Hidden default, appears on hover or implemented differently if needed, keeping it simple for cinematic look: Click whole card or add button overlay?) 
+          {/* Featured Variant Button (Hidden default, appears on hover or implemented differently if needed, keeping it simple for cinematic look: Click whole card or add button overlay?) 
           Current implementation for featured relies on whole card click or we can add a subtle button in the overlay if requested.
           For now, allowing whole card 'onClick' to handle view. 
       */}
 
-    </div >
-  );
+        </div >
+      );
 };
 
-export default VehicleCard;
+      export default VehicleCard;
