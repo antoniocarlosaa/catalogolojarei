@@ -67,8 +67,8 @@ const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick }) => {
                 </div>
             </div>
 
-            {/* MOBILE NAV PILL (Floating) */}
-            <div className="md:hidden absolute top-[70px] left-1/2 -translate-x-1/2 z-40 bg-black/80 backdrop-blur-xl border border-white/10 rounded-full px-3 py-2 flex items-center gap-2 shadow-2xl w-max">
+            {/* MOBILE NAV PILL (Floating below header) */}
+            <div className="md:hidden absolute top-[120px] left-1/2 -translate-x-1/2 z-40 bg-black/80 backdrop-blur-xl border border-white/10 rounded-full px-3 py-2 flex items-center gap-2 shadow-2xl w-max">
                 {['TUDO', 'MOTOS', 'CARROS'].map((cat) => (
                     <button
                         key={cat}
