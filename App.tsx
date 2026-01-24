@@ -33,6 +33,16 @@ const App: React.FC = () => {
     logger.logVisit();
   }, []);
 
+  // Deep Linking: Check for ?v=ID param on load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const vehicleId = params.get('v');
+    if (vehicleId && vehicles.length > 0 && !selectedVehicle) {
+      const found = vehicles.find(v => v.id === vehicleId);
+      if (found) setSelectedVehicle(found);
+    }
+  }, [vehicles]);
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -99,7 +109,8 @@ const App: React.FC = () => {
     // O usuário deve salvar como 5598...
     const finalNumber = rawNumber;
 
-    const message = encodeURIComponent(`Olá! Vi no catálogo o veículo: ${vehicle.name}. Ainda está disponível?`);
+    const link = `${window.location.origin}?v=${vehicle.id}`;
+    const message = encodeURIComponent(`Olá! Vi no catálogo o veículo: ${vehicle.name}.\nAinda está disponível?\nLink: ${link}`);
 
     // Usar api.whatsapp.com é mais robusto que wa.me para desktop
     window.open(`https://api.whatsapp.com/send?phone=${finalNumber}&text=${message}`, '_blank');
