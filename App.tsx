@@ -83,14 +83,25 @@ const App: React.FC = () => {
   const carrosEstoque = useMemo(() => filteredVehicles.filter(v => v.type === VehicleType.CARRO && !v.isSold), [filteredVehicles]);
 
   const handleInterest = (vehicle: Vehicle) => {
-    if (settings.whatsappNumbers.length === 0) {
-      alert("Configuração de atendimento pendente no Painel ADM.");
+    const validNumbers = settings.whatsappNumbers
+      .map(n => n.replace(/\D/g, '').replace(/^0+/, ''))
+      .filter(n => n.length >= 8); // Relaxado para 8 dígitos para evitar bloqueio
+
+    if (validNumbers.length === 0) {
+      alert(`Erro: Nenhum número válido.\nConfigurado: ${JSON.stringify(settings.whatsappNumbers)}`);
       return;
     }
-    const randomIndex = Math.floor(Math.random() * settings.whatsappNumbers.length);
-    const selectedNumber = settings.whatsappNumbers[randomIndex];
+
+    const randomIndex = Math.floor(Math.random() * validNumbers.length);
+    const rawNumber = validNumbers[randomIndex];
+
+    // Se tiver 11 ou menos, adiciona 55.
+    const finalNumber = rawNumber.length <= 11 ? `55${rawNumber}` : rawNumber;
+
     const message = encodeURIComponent(`Olá! Vi no catálogo o veículo: ${vehicle.name}. Ainda está disponível?`);
-    window.open(`https://wa.me/55${selectedNumber}?text=${message}`, '_blank');
+
+    // Usar api.whatsapp.com é mais robusto que wa.me para desktop
+    window.open(`https://api.whatsapp.com/send?phone=${finalNumber}&text=${message}`, '_blank');
   };
 
 

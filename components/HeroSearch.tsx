@@ -7,8 +7,8 @@ interface HeroSearchProps {
 
 const HeroSearch: React.FC<HeroSearchProps> = ({ backgroundImageUrl, backgroundPosition }) => {
     return (
-        <div className="relative w-full max-w-[1400px] mx-auto mt-28 mb-8 px-4">
-            <div className="relative w-full h-[45vh] min-h-[300px] rounded-3xl overflow-hidden shadow-2xl border border-white/10 group">
+        <div className="relative w-full max-w-[1400px] mx-auto mt-36 md:mt-28 mb-8 px-4">
+            <div className="relative w-full h-[50vh] md:h-[45vh] min-h-[350px] rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 group">
                 {/* Background Image */}
                 {backgroundImageUrl ? (
                     <div

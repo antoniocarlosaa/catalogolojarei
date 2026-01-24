@@ -67,13 +67,13 @@ const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick }) => {
                 </div>
             </div>
 
-            {/* MOBILE NAV BAR (Visible only on small screens, integrated into header) */}
-            <div className="md:hidden flex justify-center gap-4 py-2 mt-2 border-t border-white/10 bg-black/50 backdrop-blur-sm">
+            {/* MOBILE NAV PILL (Floating) */}
+            <div className="md:hidden absolute top-[70px] left-1/2 -translate-x-1/2 z-40 bg-black/80 backdrop-blur-xl border border-white/10 rounded-full px-3 py-2 flex items-center gap-2 shadow-2xl w-max">
                 {['TUDO', 'MOTOS', 'CARROS'].map((cat) => (
                     <button
                         key={cat}
                         onClick={() => setFilter(cat as CategoryFilter)}
-                        className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full ${filter === cat ? 'bg-gold text-black' : 'text-white/80 hover:bg-white/10'
+                        className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full transition-all ${filter === cat ? 'bg-gold text-black shadow-lg scale-105' : 'text-white/70 hover:bg-white/10'
                             }`}
                     >
                         {cat}

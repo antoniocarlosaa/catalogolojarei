@@ -595,11 +595,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {numbers.map((n, i) => (
-                      <input key={i} value={n} onChange={(e) => {
-                        const next = [...numbers];
-                        next[i] = e.target.value.replace(/\D/g, '');
-                        setNumbers(next);
-                      }} className="bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-xl outline-none focus:border-gold" placeholder={`WhatsApp ${i + 1}...`} />
+                      <div key={i} className="relative">
+                        <input
+                          value={n}
+                          onChange={(e) => {
+                            const next = [...numbers];
+                            next[i] = e.target.value.replace(/\D/g, '');
+                            setNumbers(next);
+                          }}
+                          className={`w-full bg-surface-light border text-white text-xs px-6 py-4 rounded-xl outline-none focus:border-gold ${n.length > 0 && n.length < 11 ? 'border-red-500/50' : 'border-white/5'}`}
+                          placeholder={`WhatsApp ${i + 1} (DDD + 9 Digitos)`}
+                        />
+                        {n.length > 0 && (
+                          <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold ${n.length === 11 ? 'text-green-500' : 'text-red-500'}`}>
+                            {n.length} dígitos
+                          </span>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
