@@ -12,6 +12,7 @@ interface AdminPanelProps {
   currentBackgroundPosition?: string;
   currentCardImageFit?: 'cover' | 'contain';
   vehicles: Vehicle[];
+  onSaveSettings: (settings: AppSettings) => Promise<void>;
   onSaveNumbers: (numbers: string[]) => void;
   onSaveMapsUrl: (url: string) => void;
   onSaveBackgroundImageUrl: (url: string) => void;
@@ -30,6 +31,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   currentBackgroundPosition,
   currentCardImageFit,
   vehicles,
+  onSaveSettings,
   onSaveNumbers,
   onSaveMapsUrl,
   onSaveBackgroundImageUrl,
@@ -651,13 +653,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               </div>
               <button
-                onClick={() => {
-                  onSaveNumbers(numbers.filter(n => n));
-                  onSaveMapsUrl(mapsUrl);
-                  onSaveBackgroundImageUrl(backgroundImageUrl);
-                  onSaveBackgroundPosition(backgroundPos);
-                  onSaveCardImageFit(cardImageFit);
-                  alert('Salvo!');
+                onClick={async () => {
+                  try {
+                    await onSaveSettings({
+                      whatsappNumbers: numbers.filter(n => n.trim() !== ''),
+                      googleMapsUrl: mapsUrl,
+                      backgroundImageUrl: backgroundImageUrl,
+                      backgroundPosition: backgroundPos,
+                      cardImageFit: cardImageFit
+                    });
+                    alert('Configurações salvas com sucesso!');
+                  } catch (error) {
+                    console.error("Erro ao salvar:", error);
+                    alert("Erro ao salvar configurações.");
+                  }
                 }}
                 className="w-full py-5 bg-gold text-black font-heading text-[11px] tracking-[0.3em] rounded-full shadow-xl hover:brightness-110 active:scale-95 transition-all"
               >

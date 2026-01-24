@@ -264,22 +264,20 @@ const App: React.FC = () => {
           currentBackgroundPosition={settings.backgroundPosition}
           currentCardImageFit={settings.cardImageFit}
           vehicles={vehicles}
-          onSaveNumbers={async (n) => {
-            console.log('Tentando salvar números:', n);
-            const ns = { ...settings, whatsappNumbers: n };
-            setSettings(ns);
+          onSaveSettings={async (newSettings) => {
+            setSettings(newSettings);
             try {
-              await db.saveSettings(ns);
-              console.log('Salvo com sucesso no banco.');
+              await db.saveSettings(newSettings);
             } catch (e) {
-              console.error("Erro fatal ao salvar settings:", e);
-              alert("Erro ao salvar configurações no banco de dados!");
+              console.error("Erro no App ao salvar:", e);
+              throw e;
             }
           }}
-          onSaveMapsUrl={u => { const ns = { ...settings, googleMapsUrl: u }; setSettings(ns); db.saveSettings(ns); }}
-          onSaveBackgroundImageUrl={u => { const ns = { ...settings, backgroundImageUrl: u }; setSettings(ns); db.saveSettings(ns); }}
-          onSaveBackgroundPosition={pos => { const ns = { ...settings, backgroundPosition: pos }; setSettings(ns); db.saveSettings(ns); }}
-          onSaveCardImageFit={fit => { const ns = { ...settings, cardImageFit: fit }; setSettings(ns); db.saveSettings(ns); }}
+          onSaveNumbers={() => { }}
+          onSaveMapsUrl={() => { }}
+          onSaveBackgroundImageUrl={() => { }}
+          onSaveBackgroundPosition={() => { }}
+          onSaveCardImageFit={() => { }}
           onUpdateVehicle={onUpdate}
           onDeleteVehicle={onDelete}
           onUpload={onUpload}
