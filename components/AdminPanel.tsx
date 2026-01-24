@@ -603,11 +603,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                             next[i] = e.target.value.replace(/\D/g, '');
                             setNumbers(next);
                           }}
-                          className={`w-full bg-surface-light border text-white text-xs px-6 py-4 rounded-xl outline-none focus:border-gold ${n.length > 0 && n.length < 11 ? 'border-red-500/50' : 'border-white/5'}`}
-                          placeholder={`WhatsApp ${i + 1} (DDD + 9 Digitos)`}
+                          className={`w-full bg-surface-light border text-white text-xs px-6 py-4 rounded-xl outline-none focus:border-gold ${n.length === 13 ? 'border-green-500/50' : 'border-white/5'}`}
+                          placeholder={`Ex: 5598988887777 (Obrigatório 55)`}
                         />
                         {n.length > 0 && (
-                          <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold ${n.length === 11 ? 'text-green-500' : 'text-red-500'}`}>
+                          <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold ${n.length >= 12 ? 'text-green-500' : 'text-red-500'}`}>
                             {n.length} dígitos
                           </span>
                         )}

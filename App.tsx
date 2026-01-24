@@ -95,8 +95,9 @@ const App: React.FC = () => {
     const randomIndex = Math.floor(Math.random() * validNumbers.length);
     const rawNumber = validNumbers[randomIndex];
 
-    // Se tiver 11 ou menos, adiciona 55.
-    const finalNumber = rawNumber.length <= 11 ? `55${rawNumber}` : rawNumber;
+    // Confiança total no que foi configurado no Painel.
+    // O usuário deve salvar como 5598...
+    const finalNumber = rawNumber;
 
     const message = encodeURIComponent(`Olá! Vi no catálogo o veículo: ${vehicle.name}. Ainda está disponível?`);
 
