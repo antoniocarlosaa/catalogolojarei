@@ -94,6 +94,7 @@ const App: React.FC = () => {
 
   const handleInterest = (vehicle: Vehicle) => {
     const validNumbers = settings.whatsappNumbers
+      .filter(n => !n.startsWith('OFF:')) // Ignora números desativados logicamente
       .map(n => n.replace(/\D/g, '').replace(/^0+/, ''))
       .filter(n => n.length >= 8); // Relaxado para 8 dígitos para evitar bloqueio
 
@@ -102,8 +103,18 @@ const App: React.FC = () => {
       return;
     }
 
-    const randomIndex = Math.floor(Math.random() * validNumbers.length);
-    const rawNumber = validNumbers[randomIndex];
+    // Lógica de Peso: O primeiro número da lista tem 5x mais chance de ser escolhido.
+    // Os demais concorrem com peso 1.
+    const lotteryPool: string[] = [];
+    validNumbers.forEach((num, index) => {
+      const weight = index === 0 ? 5 : 1;
+      for (let i = 0; i < weight; i++) {
+        lotteryPool.push(num);
+      }
+    });
+
+    const randomIndex = Math.floor(Math.random() * lotteryPool.length);
+    const rawNumber = lotteryPool[randomIndex];
 
     // Confiança total no que foi configurado no Painel.
     // O usuário deve salvar como 5598...
