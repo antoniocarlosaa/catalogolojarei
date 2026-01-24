@@ -193,11 +193,27 @@ const App: React.FC = () => {
             <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(255,215,0,0.3)]"></div>
           )}
 
-          {/* MOTOS GRID */}
+          {/* ÚLTIMOS LANÇAMENTOS (Carousel Mixed) */}
+          {(filteredVehicles.length > 0) && (filter === 'TUDO' || filter === 'MOTOS' || filter === 'CARROS') && (
+            <StockCarousel
+              title="Últimos Lançamentos"
+              vehicles={filteredVehicles.filter(v => !v.isSold).slice(0, 10)}
+              onInterest={handleInterest}
+              onViewDetails={handleViewDetails}
+              imageFit={settings.cardImageFit}
+            />
+          )}
+
+          {/* SEPARATOR */}
+          {(motosEstoque.length > 0) && (
+            <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(255,215,0,0.3)]"></div>
+          )}
+
+          {/* ESTOQUE DE MOTOS (Grid) */}
           {(motosEstoque.length > 0) && (filter === 'TUDO' || filter === 'MOTOS') && (
             <StockGrid
-              title="Últimos Lançamentos"
-              vehicles={motosEstoque.slice(0, 12)}
+              title="Estoque de Motos"
+              vehicles={motosEstoque}
               onInterest={handleInterest}
               onViewDetails={handleViewDetails}
               imageFit={settings.cardImageFit}

@@ -65,6 +65,7 @@ class VehicleService {
       isPromoSemana: dbVehicle.is_promo_semana || false,
       isPromoMes: dbVehicle.is_promo_mes || false,
       isZeroKm: dbVehicle.is_zero_km || false,
+      isRepasse: dbVehicle.is_repasse || false,
       specs: dbVehicle.specs,
       km: dbVehicle.km,
       year: dbVehicle.year,
@@ -80,6 +81,7 @@ class VehicleService {
       hasSpareKey: dbVehicle.has_spare_key || false,
       hasRevisoes: dbVehicle.has_revisoes || false,
       imagePosition: dbVehicle.image_position,
+      plate_last3: dbVehicle.plate_last3,
     };
   }
 
@@ -108,6 +110,7 @@ class VehicleService {
           is_promo_semana: vehicle.isPromoSemana || false,
           is_promo_mes: vehicle.isPromoMes || false,
           is_zero_km: vehicle.isZeroKm || false,
+          is_repasse: vehicle.isRepasse || false,
           specs: vehicle.specs,
           km: vehicle.km,
           year: vehicle.year,
@@ -122,7 +125,7 @@ class VehicleService {
           has_manual: vehicle.hasManual || false,
           has_spare_key: vehicle.hasSpareKey || false,
           has_revisoes: vehicle.hasRevisoes || false,
-
+          plate_last3: vehicle.plate_last3,
         }]);
 
       if (error) {
@@ -155,6 +158,30 @@ class VehicleService {
       if (updates.isPromoSemana !== undefined) updateData.is_promo_semana = updates.isPromoSemana;
       if (updates.isPromoMes !== undefined) updateData.is_promo_mes = updates.isPromoMes;
       if (updates.specs !== undefined) updateData.specs = updates.specs;
+      if (updates.plate_last3 !== undefined) updateData.plate_last3 = updates.plate_last3;
+      if (updates.color !== undefined) updateData.color = updates.color;
+      if (updates.km !== undefined) updateData.km = updates.km;
+      if (updates.year !== undefined) updateData.year = updates.year;
+      // Add other missing fields if crucial, but plate_last3 was the request.
+      // Actually checking AdminPanel logic, it sends most fields. Let's make sure update handles ALL fields sent by Full Edit.
+      if (updates.type !== undefined) updateData.type = updates.type;
+      if (updates.imageUrl !== undefined) updateData.image_url = updates.imageUrl;
+      if (updates.images !== undefined) updateData.images = updates.images;
+      if (updates.videoUrl !== undefined) updateData.video_url = updates.videoUrl;
+      if (updates.videos !== undefined) updateData.videos = updates.videos;
+      if (updates.isZeroKm !== undefined) updateData.is_zero_km = updates.isZeroKm;
+      if (updates.isRepasse !== undefined) updateData.is_repasse = updates.isRepasse;
+      if (updates.category !== undefined) updateData.category = updates.category;
+      if (updates.displacement !== undefined) updateData.displacement = updates.displacement;
+      if (updates.transmission !== undefined) updateData.transmission = updates.transmission;
+      if (updates.fuel !== undefined) updateData.fuel = updates.fuel;
+      if (updates.motor !== undefined) updateData.motor = updates.motor;
+      if (updates.isSingleOwner !== undefined) updateData.is_single_owner = updates.isSingleOwner;
+      if (updates.hasDut !== undefined) updateData.has_dut = updates.hasDut;
+      if (updates.hasManual !== undefined) updateData.has_manual = updates.hasManual;
+      if (updates.hasSpareKey !== undefined) updateData.has_spare_key = updates.hasSpareKey;
+      if (updates.hasRevisoes !== undefined) updateData.has_revisoes = updates.hasRevisoes;
+      if (updates.imagePosition !== undefined) updateData.image_position = updates.imagePosition;
 
 
       const { error } = await supabase

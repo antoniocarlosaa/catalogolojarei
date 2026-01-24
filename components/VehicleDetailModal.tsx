@@ -76,6 +76,7 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                             {vehicle.isFeatured && <span className="px-3 py-1 bg-gold text-black text-[10px] font-bold uppercase tracking-widest rounded-full">Destaque</span>}
                             {(vehicle.isPromoSemana || vehicle.isPromoMes) && <span className="px-3 py-1 bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full">Promoção</span>}
                             {vehicle.isZeroKm && <span className="px-3 py-1 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full">0 KM</span>}
+                            {vehicle.isRepasse && <span className="px-3 py-1 bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-full animate-pulse border border-red-500">⚠️ Repasse</span>}
                         </div>
 
                         <h2 className="text-3xl lg:text-4xl font-heading text-white uppercase leading-tight mb-2">{vehicle.name}</h2>
@@ -112,12 +113,41 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                                 <span className="block text-[9px] text-white/40 uppercase font-bold tracking-widest mb-1">Combustível</span>
                                 <span className="text-white text-lg">{vehicle.fuel || '-'}</span>
                             </div>
+                            <div>
+                                <span className="block text-[9px] text-white/40 uppercase font-bold tracking-widest mb-1">Cor</span>
+                                <span className="text-white text-lg">{vehicle.color || '-'}</span>
+                            </div>
+                        </div>
+
+                        {/* Checklist Section */}
+                        <div className="mt-6 pt-6 border-t border-white/5">
+                            <h4 className="text-[10px] text-white/30 font-bold uppercase tracking-widest mb-4">Itens & Documentação</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                                {[
+                                    { label: 'Único Dono', value: vehicle.isSingleOwner, icon: 'person' },
+                                    { label: 'DUT', value: vehicle.hasDut, icon: 'description' },
+                                    { label: 'Manual', value: vehicle.hasManual, icon: 'menu_book' },
+                                    { label: 'Chave Reserva', value: vehicle.hasSpareKey, icon: 'vpn_key' },
+                                    { label: 'Revisões Feitas', value: vehicle.hasRevisoes, icon: 'build_circle' },
+                                ].map((item) => (
+                                    <div key={item.label} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${item.value ? 'bg-white/5 border-gold/20 text-white' : 'bg-transparent border-white/5 text-white/20'}`}>
+                                        <span className={`material-symbols-outlined text-lg ${item.value ? 'text-gold' : 'text-white/20'}`}>{item.icon}</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-wide">{item.label}</span>
+                                        <span className={`ml-auto material-symbols-outlined text-sm ${item.value ? 'text-green-500' : 'text-red-500/50'}`}>
+                                            {item.value ? 'check_circle' : 'cancel'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         {vehicle.specs && (
                             <div className="bg-white/5 p-5 rounded-2xl border border-white/5 mt-4">
                                 <span className="block text-[9px] text-gold uppercase font-bold tracking-widest mb-2">Detalhes Adicionais</span>
-                                <p className="text-white/80 text-sm leading-relaxed">{vehicle.specs ? vehicle.specs.split('|').filter(s => !s.trim().toUpperCase().startsWith('COR:')).join(' | ') : ''}</p>
+                                <p className="text-white/80 text-sm leading-relaxed">{vehicle.specs ? vehicle.specs.split('|').filter(s => {
+                                    const upper = s.trim().toUpperCase();
+                                    return !upper.startsWith('COR:') && !upper.startsWith('ANO:') && !upper.startsWith('KM:') && !upper.startsWith('[KM') && !upper.startsWith('SEMI NOVA') && !upper.startsWith('ZERO KM');
+                                }).join(' | ') : ''}</p>
                             </div>
                         )}
                     </div>

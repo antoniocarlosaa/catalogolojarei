@@ -30,6 +30,25 @@ const StockCarousel: React.FC<StockCarouselProps> = ({ title, vehicles, onIntere
     ? "w-[280px] md:w-[340px] flex-none"
     : "w-[200px] md:w-[240px] flex-none";
 
+  const carouselRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (vehicles.length <= 6) return;
+
+    const interval = setInterval(() => {
+      if (carouselRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
+        if (scrollLeft + clientWidth >= scrollWidth - 10) {
+          carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          carouselRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [vehicles.length]);
+
   return (
     <section className="w-full max-w-[1400px] mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-4 pl-2">
@@ -39,7 +58,7 @@ const StockCarousel: React.FC<StockCarouselProps> = ({ title, vehicles, onIntere
       </div>
 
       <div className="relative -mx-4 px-4 overflow-hidden group/carousel">
-        <div className="flex gap-4 overflow-x-auto pb-6 snap-x snap-mandatory hide-scrollbar">
+        <div ref={carouselRef} className="flex gap-4 overflow-x-auto pb-6 snap-x snap-mandatory hide-scrollbar">
           {vehicles.map((vehicle) => (
             <div key={vehicle.id} className={`${cardWidthClass} snap-center`}>
               <div className="h-full transform transition-transform hover:-translate-y-1 duration-300">

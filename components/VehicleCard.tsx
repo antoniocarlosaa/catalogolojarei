@@ -101,17 +101,29 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
         )}
         {/* Mileage Badges (Moved to Image Overlay) */}
         {/* Mileage Badges */}
-        {vehicle.type === VehicleType.MOTO && vehicle.km !== undefined && !isFeatured && (
-          <div className="absolute top-2 right-2 z-20 flex flex-col gap-1 items-end pointer-events-none">
-            {vehicle.km <= 0 ? (
-              <span className="text-[10px] font-bold text-white bg-emerald-500/90 backdrop-blur-md px-2 py-1 rounded shadow-lg uppercase tracking-wider">ZERO KM</span>
-            ) : vehicle.km <= 10 ? (
-              <span className="text-[10px] font-bold text-white bg-purple-500/90 backdrop-blur-md px-2 py-1 rounded shadow-lg uppercase tracking-wider">SEMI NOVA</span>
-            ) : vehicle.km < 20 ? (
-              <span className="text-[10px] font-bold text-white bg-sky-500/90 backdrop-blur-md px-2 py-1 rounded shadow-lg uppercase tracking-wider">KM BAIXO</span>
-            ) : null}
+        {vehicle.isRepasse && (
+          <div className="absolute top-3 right-3 px-3 py-1 bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg z-20 border border-red-500/50 animate-pulse">
+            ⚠️ Repasse
           </div>
         )}
+
+        <div className="absolute top-3 left-3 flex flex-col gap-2 z-20">
+          {vehicle.isFeatured && (
+            <div className="self-start px-3 py-1 bg-gold text-black text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">
+              Destaque
+            </div>
+          )}
+          {(vehicle.isPromoSemana || vehicle.isPromoMes) && (
+            <div className="self-start px-3 py-1 bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">
+              Promoção
+            </div>
+          )}
+          {vehicle.isZeroKm && (
+            <div className="self-start px-3 py-1 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">
+              0 KM
+            </div>
+          )}
+        </div>
 
       </div>
 
@@ -138,9 +150,8 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
 
           {/* Cod & Placa Section */}
           <div className="flex items-center justify-between text-[9px] text-white/40 font-monouppercase tracking-wider mt-1 border-t border-white/5 pt-1">
-            <span title={`CÓD: ${vehicle.id}`}>CÓD: {vehicle.id.slice(0, 8)}...</span>
             {vehicle.plate_last3 && (
-              <span>PLACA FINAL: {vehicle.plate_last3}</span>
+              <span title={`Final Placa: ${vehicle.plate_last3}`}>COD3: {vehicle.plate_last3}</span>
             )}
           </div>
 
@@ -148,7 +159,10 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
           {/* Let's put category on its own line if it exists to avoid wrapping weirdness with the dots */}
           {(vehicle.category || vehicle.specs) && (
             <div className="text-[9px] text-white/40 font-medium uppercase tracking-widest truncate mb-2 mt-1">
-              {vehicle.category || (vehicle.specs ? vehicle.specs.split('|').filter(s => !s.trim().toUpperCase().startsWith('COR:')).join(' | ') : '')}
+              {vehicle.category || (vehicle.specs ? vehicle.specs.split('|').filter(s => {
+                const upper = s.trim().toUpperCase();
+                return !upper.startsWith('COR:') && !upper.startsWith('ANO:') && !upper.startsWith('KM:') && !upper.startsWith('[KM') && !upper.startsWith('SEMI NOVA') && !upper.startsWith('ZERO KM');
+              }).join(' | ') : '')}
             </div>
           )}
 

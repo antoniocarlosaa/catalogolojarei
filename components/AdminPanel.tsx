@@ -121,6 +121,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [newPrice, setNewPrice] = useState('');
   const [newPlateLast3, setNewPlateLast3] = useState(''); // Estado para placa
   const [newYear, setNewYear] = useState('');
+  const [newColor, setNewColor] = useState('');
 
   const [newKM, setNewKM] = useState('');
   const [newSpecs, setNewSpecs] = useState('');
@@ -133,17 +134,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [hasDut, setHasDut] = useState(false);
   const [hasManual, setHasManual] = useState(false);
   const [hasSpareKey, setHasSpareKey] = useState(false);
+  const [hasRevisoes, setHasRevisoes] = useState(false); // Fix: State added
   const [isPromoSemana, setIsPromoSemana] = useState(false);
   const [isPromoMes, setIsPromoMes] = useState(false);
   const [isZeroKm, setIsZeroKm] = useState(false);
+  const [isRepasse, setIsRepasse] = useState(false); // Novo state Repasse
   const [isFeatured, setIsFeatured] = useState(false);
 
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [imageFiles, setImageFiles] = useState<File[]>([]); // Novo estado para arquivos reais
-  const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
-  const [videoFiles, setVideoFiles] = useState<File[]>([]); // Novo estado para arquivos reais
+  // Unified Media State
+  const [currentImages, setCurrentImages] = useState<{ url: string; file?: File }[]>([]);
+  const [currentVideos, setCurrentVideos] = useState<{ url: string; file?: File }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const [fullEditingId, setFullEditingId] = useState<string | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -181,21 +185,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
 
     if (type === 'image') {
-      if (imagePreviews.length + files.length > 6) {
+      if (currentImages.length + files.length > 6) {
         setUploadError("Máximo de 6 fotos permitido.");
         return;
       }
-      const newPreviews = files.map(f => URL.createObjectURL(f));
-      setImagePreviews(prev => [...prev, ...newPreviews]);
-      setImageFiles(prev => [...prev, ...files]);
+      const newItems = files.map(f => ({ url: URL.createObjectURL(f), file: f }));
+      setCurrentImages(prev => [...prev, ...newItems]);
     } else {
-      if (videoPreviews.length + files.length > 3) {
+      if (currentVideos.length + files.length > 3) {
         setUploadError("Máximo de 3 vídeos permitido.");
         return;
       }
-      const newPreviews = files.map(f => URL.createObjectURL(f));
-      setVideoPreviews(prev => [...prev, ...newPreviews]);
-      setVideoFiles(prev => [...prev, ...files]);
+      const newItems = files.map(f => ({ url: URL.createObjectURL(f), file: f }));
+      setCurrentVideos(prev => [...prev, ...newItems]);
     }
 
     if (e.target) e.target.value = '';
@@ -204,11 +206,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const removeMedia = (index: number, type: 'image' | 'video') => {
     if (type === 'image') {
-      setImagePreviews(prev => prev.filter((_, i) => i !== index));
-      setImageFiles(prev => prev.filter((_, i) => i !== index));
+      setCurrentImages(prev => prev.filter((_, i) => i !== index));
     } else {
-      setVideoPreviews(prev => prev.filter((_, i) => i !== index));
-      setVideoFiles(prev => prev.filter((_, i) => i !== index));
+      setCurrentVideos(prev => prev.filter((_, i) => i !== index));
     }
   };
 
@@ -238,29 +238,37 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     });
   };
 
-  const handleCreateVehicle = async (e: React.FormEvent) => {
+  const handleSaveVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName || imageFiles.length === 0) {
+    if (!newName || currentImages.length === 0) {
       setUploadError("Nome e Pelo menos 1 Foto são obrigatórios.");
       return;
     }
 
-    setIsUploading(true); // Bloquear UI
+    setIsUploading(true);
 
     try {
-      // 1. Upload das Imagens
+      // 1. Upload Images
       const uploadedImages: string[] = [];
-      for (const file of imageFiles) {
-        const url = await uploadFileToStorage(file);
-        uploadedImages.push(url);
+      for (const item of currentImages) {
+        if (item.file) {
+          const url = await uploadFileToStorage(item.file);
+          uploadedImages.push(url);
+        } else {
+          uploadedImages.push(item.url);
+        }
       }
 
-      // 2. Upload dos Vídeos
+      // 2. Upload Videos
       const uploadedVideos: string[] = [];
-      for (const file of videoFiles) {
+      for (const item of currentVideos) {
         try {
-          const url = await uploadFileToStorage(file);
-          uploadedVideos.push(url);
+          if (item.file) {
+            const url = await uploadFileToStorage(item.file);
+            uploadedVideos.push(url);
+          } else {
+            uploadedVideos.push(item.url);
+          }
         } catch (err) {
           console.warn("Falha ao enviar vídeo, ignorando:", err);
         }
@@ -272,60 +280,119 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       else if (kmValue >= 1 && kmValue <= 10) kmHighlight = "KM BAIXO";
 
       const parts = [
-        newYear && `ANO: ${newYear}`,
-
         newType === VehicleType.MOTO && newDisplacement && `${newDisplacement} CC`,
         newType === VehicleType.CARRO && `${newTransmission} | ${newFuel}`,
-        kmHighlight && `[${kmHighlight}]`,
-        `KM: ${kmValue.toLocaleString('pt-BR')}`,
         newSpecs
       ].filter(Boolean);
 
-      const newVehicle: Vehicle = {
-        id: uuidv4(), // FIX: UUID Manual v4
+      const vehicleData: Vehicle = {
+        id: fullEditingId || uuidv4(),
         name: newName.toUpperCase(),
         price: isNaN(Number(newPrice.replace(/\D/g, ''))) && newPrice.length > 0 ? newPrice : Number(newPrice.replace(/\D/g, '')),
         type: newType,
-        imageUrl: uploadedImages[0], // Primeira imagem é a capa
-        images: uploadedImages, // Array completo de URLs do Storage
+        imageUrl: uploadedImages[0],
+        images: uploadedImages,
         videoUrl: uploadedVideos.length > 0 ? uploadedVideos[0] : undefined,
         videos: uploadedVideos,
         isPromoSemana,
         isPromoMes,
         isZeroKm,
+        isRepasse,
         isFeatured,
         specs: parts.join(" | "),
         km: kmValue,
         year: newYear,
-        plate_last3: newPlateLast3, // Adicionando placa (fixed duplicates)
+        color: newColor.toUpperCase(),
+        plate_last3: newPlateLast3,
         hasSpareKey,
+        hasDut,
+        hasManual,
+        isSingleOwner,
         hasRevisoes: false,
         imagePosition: newImagePos,
         isSold: false
       };
 
-      await onUpload(newVehicle);
-
-      // LOG ACTION
-      if (user?.email) {
-        logger.logAction(user.email, 'CRIAR', newVehicle.name, `Preço: ${newVehicle.price}`);
+      if (fullEditingId) {
+        await onUpdateVehicle(fullEditingId, vehicleData);
+        alert('Veículo atualizado com sucesso!');
+      } else {
+        await onUpload(vehicleData);
+        alert('Veículo publicado com sucesso!');
       }
 
-      alert('Veículo publicado com sucesso!');
-      // Limpar Estado
-      setImagePreviews([]); setImageFiles([]);
-      setVideoPreviews([]); setVideoFiles([]);
-      setNewName(''); setNewPrice(''); setNewKM(''); setNewYear('');
-      setNewPlateLast3(''); // Limpar placa
-      setNewImagePos('50% 50%');
-      setIsFeatured(false); setIsPromoSemana(false);
+      // Log
+      if (user?.email) {
+        logger.logAction(user.email, fullEditingId ? 'EDITAR' : 'CRIAR', vehicleData.name, `Preço: ${vehicleData.price}`);
+      }
+
+      resetForm();
       setActiveTab('inventory');
 
     } catch (error: any) {
-      console.error("Erro no processo de criação:", error);
-      alert(`Erro ao criar veículo: ${error.message || 'Falha no upload/banco'}. Tente novamente.`);
+      console.error("Erro no processo:", error);
+      alert(`Erro: ${error.message || 'Falha no upload/banco'}.`);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setCurrentImages([]); setCurrentVideos([]);
+    setNewName(''); setNewPrice(''); setNewKM(''); setNewYear(''); setNewColor('');
+    setNewPlateLast3(''); setNewSpecs('');
+    setNewImagePos('50% 50%');
+    setIsFeatured(false); setIsPromoSemana(false);
+    setIsPromoMes(false); setIsZeroKm(false); setIsRepasse(false);
+    setIsSingleOwner(false); setHasDut(false); setHasManual(false); setHasSpareKey(false); setHasRevisoes(false);
+    setNewType(VehicleType.MOTO);
+    setNewDisplacement(''); setNewTransmission('Automático'); setNewFuel('Gasolina');
+    setFullEditingId(null);
+    setUploadError(null);
+  };
+
+  const openFullEdit = (v: Vehicle) => {
+    try {
+      console.log('Abrindo edição para:', v);
+      setFullEditingId(v.id);
+      setNewName(v.name);
+      setNewPrice(v.price?.toString() || '');
+      setNewType(v.type);
+      setNewKM(v.km?.toString() || '');
+      setNewYear(v.year || '');
+      setNewColor(v.color || '');
+      setNewPlateLast3(v.plate_last3 || '');
+      setNewSpecs((v.specs || '').split('|').filter(s => {
+        const u = s.trim().toUpperCase();
+        return !u.startsWith('ANO:') && !u.startsWith('KM:') && !u.startsWith('COR:') && !u.startsWith('[KM') && !u.startsWith('SEMI NOVA') && !u.startsWith('ZERO KM');
+      }).join(' | '));
+
+      setNewDisplacement(v.displacement || '');
+      setNewTransmission(v.transmission || 'Automático');
+      setNewFuel(v.fuel || 'Gasolina');
+      setNewImagePos(v.imagePosition || '50% 50%');
+
+      setIsSingleOwner(v.isSingleOwner || false);
+      setHasDut(v.hasDut || false);
+      setHasManual(v.hasManual || false);
+      setHasSpareKey(v.hasSpareKey || false);
+      setHasRevisoes(v.hasRevisoes || false);
+      setIsPromoSemana(v.isPromoSemana || false);
+      setIsPromoMes(v.isPromoMes || false);
+      setIsZeroKm(v.isZeroKm || false);
+      setIsRepasse(v.isRepasse || false);
+      setIsFeatured(v.isFeatured || false);
+
+      const imgs = (v.images && v.images.length > 0) ? v.images : (v.imageUrl ? [v.imageUrl] : []);
+      setCurrentImages(imgs.map(url => ({ url })));
+
+      const vids = (v.videos && v.videos.length > 0) ? v.videos : (v.videoUrl ? [v.videoUrl] : []);
+      setCurrentVideos(vids.map(url => ({ url })));
+
+      setActiveTab('upload');
+    } catch (error: any) {
+      console.error("Erro ao abrir edição:", error);
+      alert(`Erro ao tentar editar: ${error.message}`);
     }
   };
 
@@ -555,7 +622,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
           {
             activeTab === 'upload' && (
-              <form onSubmit={handleCreateVehicle} className="space-y-8 animate-in fade-in duration-300 pb-10">
+              <form onSubmit={handleSaveVehicle} className="space-y-8 animate-in fade-in duration-300 pb-10">
+                <div className="flex items-center justify-between mb-4 px-1">
+                  <h3 className="text-gold text-sm font-bold uppercase tracking-widest">
+                    {fullEditingId ? '✏️ Editando Veículo' : '✨ Novo Cadastro'}
+                  </h3>
+                  {fullEditingId && (
+                    <button type="button" onClick={resetForm} className="text-xs text-red-400 hover:text-red-300 underline uppercase tracking-wider">
+                      Cancelar Edição
+                    </button>
+                  )}
+                </div>
+
                 <div className="flex p-1.5 bg-white/5 rounded-full border border-white/5">
                   <button type="button" onClick={() => setNewType(VehicleType.MOTO)} className={`flex-1 py-4 rounded-full flex items-center justify-center gap-3 transition-all ${newType === VehicleType.MOTO ? 'bg-gold text-black shadow-lg' : 'text-white/40 hover:text-white'}`}>
                     <span className="material-symbols-outlined">motorcycle</span>
@@ -567,23 +645,36 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </button>
                 </div>
 
-                {/* Checkbox 0 KM */}
-                <div className="flex items-center gap-3 p-4 bg-gold/10 border border-gold/20 rounded-2xl">
-                  <input
-                    type="checkbox"
-                    id="isZeroKm"
-                    checked={isZeroKm}
-                    onChange={(e) => {
-                      setIsZeroKm(e.target.checked);
-                      if (e.target.checked) {
-                        setNewKM('0');
-                      }
-                    }}
-                    className="w-5 h-5 rounded border-gold/30 text-gold focus:ring-gold"
-                  />
-                  <label htmlFor="isZeroKm" className="text-sm font-bold text-gold uppercase tracking-wider cursor-pointer">
-                    ✨ Veículo 0 KM
-                  </label>
+                {/* Checkbox 0 KM & Repasse */}
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex-1 flex items-center gap-3 p-4 bg-gold/10 border border-gold/20 rounded-2xl">
+                    <input
+                      type="checkbox"
+                      id="isZeroKm"
+                      checked={isZeroKm}
+                      onChange={(e) => {
+                        setIsZeroKm(e.target.checked);
+                        if (e.target.checked) setNewKM('0');
+                      }}
+                      className="w-5 h-5 rounded border-gold/30 text-gold focus:ring-gold"
+                    />
+                    <label htmlFor="isZeroKm" className="text-sm font-bold text-gold uppercase tracking-wider cursor-pointer">
+                      ✨ Veículo 0 KM
+                    </label>
+                  </div>
+
+                  <div className="flex-1 flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
+                    <input
+                      type="checkbox"
+                      id="isRepasse"
+                      checked={isRepasse}
+                      onChange={(e) => setIsRepasse(e.target.checked)}
+                      className="w-5 h-5 rounded border-red-500/30 text-red-500 focus:ring-red-500"
+                    />
+                    <label htmlFor="isRepasse" className="text-sm font-bold text-red-500 uppercase tracking-wider cursor-pointer">
+                      ⚠️ Repasse
+                    </label>
+                  </div>
                 </div>
 
                 <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
@@ -591,14 +682,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     <div>
                       <h4 className="text-[10px] text-gold font-bold uppercase tracking-widest mb-4">Fotos do Veículo (Máx 6)</h4>
                       <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-                        {imagePreviews.map((url, i) => (
+                        {currentImages.map((item, i) => (
                           <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-black border border-white/10 group">
-                            <img src={url} className="w-full h-full object-cover" />
+                            <img src={item.url} className="w-full h-full object-cover" />
                             <button type="button" onClick={() => removeMedia(i, 'image')} className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded-full"><span className="material-symbols-outlined text-[14px]">close</span></button>
                             {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-gold/90 text-black text-[7px] font-bold text-center py-0.5 uppercase">Capa</div>}
                           </div>
                         ))}
-                        {imagePreviews.length < 6 && (
+                        {currentImages.length < 6 && (
                           <button type="button" disabled={isUploading} onClick={() => imageInputRef.current?.click()} className={`aspect-square bg-surface-light border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'text-white/20 hover:border-gold hover:text-gold'}`}>
                             {isUploading ? <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">add_a_photo</span>}
                           </button>
@@ -607,12 +698,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       <input type="file" ref={imageInputRef} className="hidden" accept="image/*" multiple onChange={(e) => handleFileChange(e, 'image')} />
                     </div>
 
-                    {imagePreviews.length > 0 && (
+                    {currentImages.length > 0 && (
                       <div className="bg-white/5 p-4 rounded-xl border border-white/5 mb-6">
                         <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-3 block">Ajustar Posição da Foto Principal (Capa)</label>
                         <div className="flex gap-4 items-center">
                           <div className="w-20 h-20 rounded-lg overflow-hidden relative border border-white/20">
-                            <img src={imagePreviews[0]} className="w-full h-full object-cover" style={{ objectPosition: newImagePos }} />
+                            <img src={currentImages[0].url} className="w-full h-full object-cover" style={{ objectPosition: newImagePos }} />
                           </div>
                           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
@@ -651,13 +742,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     <div>
                       <h4 className="text-[10px] text-gold font-bold uppercase tracking-widest mb-4">Vídeos (Opcional - Máx 3)</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {videoPreviews.map((url, i) => (
+                        {currentVideos.map((item, i) => (
                           <div key={i} className="relative aspect-video rounded-xl overflow-hidden bg-black border border-white/10">
-                            <video src={url} className="w-full h-full object-cover" muted />
+                            <video src={item.url} className="w-full h-full object-cover" muted />
                             <button type="button" onClick={() => removeMedia(i, 'video')} className="absolute top-2 right-2 bg-black/70 text-white p-1.5 rounded-full"><span className="material-symbols-outlined">close</span></button>
                           </div>
                         ))}
-                        {videoPreviews.length < 3 && (
+                        {currentVideos.length < 3 && (
                           <button type="button" disabled={isUploading} onClick={() => videoInputRef.current?.click()} className={`aspect-video bg-surface-light border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'text-white/20 hover:border-gold hover:text-gold'}`}>
                             {isUploading ? <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">videocam</span>}
                           </button>
@@ -688,6 +779,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     <div>
                       <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Ano / Modelo</label>
                       <input value={newYear} onChange={e => setNewYear(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="2024" />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cor</label>
+                      <input value={newColor} onChange={e => setNewColor(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="Ex: PRETO" />
                     </div>
                     <div>
 
@@ -722,7 +817,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-white/5">
                     {[
                       { label: 'Único Dono', state: isSingleOwner, set: setIsSingleOwner, tooltip: 'Apenas um proprietário.' },
-                      { label: 'DUT na Mão', state: hasDut, set: setHasDut, tooltip: 'Documentação pronta.' },
+                      { label: 'DUT', state: hasDut, set: setHasDut, tooltip: 'Documentação pronta.' },
                       { label: 'Manual', state: hasManual, set: setHasManual, tooltip: 'Acompanha manual.' },
                       { label: 'Chave Reserva', state: hasSpareKey, set: setHasSpareKey, tooltip: 'Possui chave reserva.' },
                       { label: 'Promoção', state: isPromoSemana, set: setIsPromoSemana, tooltip: 'Marcar com tag de promoção.' },
@@ -741,9 +836,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 </div>
 
-                <button type="submit" disabled={isUploading} className={`w-full py-6 bg-gold text-black text-[13px] font-heading tracking-[0.3em] rounded-full shadow-2xl transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gold-light active:scale-[0.98]'}`}>
-                  {isUploading ? 'PROCESSANDO MÍDIA...' : 'PUBLICAR NO CATÁLOGO'}
-                </button>
+                <div className="flex gap-4">
+                  {fullEditingId && (
+                    <button type="button" onClick={resetForm} className="flex-1 py-6 bg-white/5 text-white text-[13px] font-heading tracking-[0.3em] rounded-full hover:bg-white/10 transition-all">
+                      CANCELAR
+                    </button>
+                  )}
+                  <button type="submit" disabled={isUploading} className={`flex-1 py-6 bg-gold text-black text-[13px] font-heading tracking-[0.3em] rounded-full shadow-2xl transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gold-light active:scale-[0.98]'}`}>
+                    {isUploading ? 'PROCESSANDO...' : fullEditingId ? 'ATUALIZAR VEÍCULO' : 'PUBLICAR NO CATÁLOGO'}
+                  </button>
+                </div>
               </form>
             )
           }
@@ -766,7 +868,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           <input value={editSpecs} onChange={e => setEditSpecs(e.target.value)} className="w-full bg-surface-light border border-white/10 text-white text-[10px] px-3 py-1.5 rounded-lg focus:outline-none" placeholder="Specs" />
                         </div>
                       ) : (
-                        <div className="cursor-pointer group/info" onClick={() => startEditing(v)}>
+                        <div className="cursor-pointer group/info" onClick={() => openFullEdit(v)}>
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="text-white text-xs font-heading tracking-wider truncate uppercase group-hover/info:text-gold transition-colors">{v.name}</h4>
                             {v.plate_last3 && <span className="text-[8px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded font-mono border border-white/5">{v.plate_last3}</span>}
@@ -784,7 +886,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         </>
                       ) : (
                         <>
-                          <button onClick={() => startEditing(v)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-blue-400 hover:bg-blue-400/20 transition-all" title="Editar">
+                          <button onClick={() => openFullEdit(v)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-blue-400 hover:bg-blue-400/20 transition-all" title="Editar Completo">
                             <span className="material-symbols-outlined text-[18px]">edit</span>
                           </button>
                           <button onClick={() => {

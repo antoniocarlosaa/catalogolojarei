@@ -19,6 +19,7 @@ export interface Vehicle {
   isPromoSemana?: boolean;
   isPromoMes?: boolean;
   isZeroKm?: boolean; // Indica se é 0 KM
+  isRepasse?: boolean; // Veículo de repasse
   specs?: string;
   km?: number;
   year?: string; // Ano do veículo
