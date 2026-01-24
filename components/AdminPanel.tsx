@@ -63,6 +63,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   }, [user, onClose]);
 
+  // Sync numbers with props (Garante que os dados estejam sempre atualizados)
+  useEffect(() => {
+    setNumbers(Array(10).fill('').map((_, i) => currentNumbers[i] || ''));
+  }, [currentNumbers]);
+
   const loadLogs = async () => {
     try {
       const [acc, aud] = await Promise.all([

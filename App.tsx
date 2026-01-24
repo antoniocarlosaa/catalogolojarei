@@ -264,7 +264,18 @@ const App: React.FC = () => {
           currentBackgroundPosition={settings.backgroundPosition}
           currentCardImageFit={settings.cardImageFit}
           vehicles={vehicles}
-          onSaveNumbers={n => { const ns = { ...settings, whatsappNumbers: n }; setSettings(ns); db.saveSettings(ns); }}
+          onSaveNumbers={async (n) => {
+            console.log('Tentando salvar números:', n);
+            const ns = { ...settings, whatsappNumbers: n };
+            setSettings(ns);
+            try {
+              await db.saveSettings(ns);
+              console.log('Salvo com sucesso no banco.');
+            } catch (e) {
+              console.error("Erro fatal ao salvar settings:", e);
+              alert("Erro ao salvar configurações no banco de dados!");
+            }
+          }}
           onSaveMapsUrl={u => { const ns = { ...settings, googleMapsUrl: u }; setSettings(ns); db.saveSettings(ns); }}
           onSaveBackgroundImageUrl={u => { const ns = { ...settings, backgroundImageUrl: u }; setSettings(ns); db.saveSettings(ns); }}
           onSaveBackgroundPosition={pos => { const ns = { ...settings, backgroundPosition: pos }; setSettings(ns); db.saveSettings(ns); }}
