@@ -261,10 +261,10 @@ class VehicleService {
 
   // Salvar configurações
   async saveSettings(settings: AppSettings): Promise<void> {
-    try {
-      // Salvar localmente primeiro
-      localStorage.setItem(this.settingsKey, JSON.stringify(settings));
+    // Salvar localmente primeiro
+    localStorage.setItem(this.settingsKey, JSON.stringify(settings));
 
+    try {
       // Primeiro, buscar o ID da configuração existente
       const { data: existing } = await supabase
         .from('settings')
@@ -301,10 +301,10 @@ class VehicleService {
 
         if (error) throw error;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar configurações no Supabase:', error);
-      // Fallback silencioso: já salvou no LocalStorage
-      // Não alertamos o usuário para não interromper o fluxo, mas o erro está no console
+      // RE-THROW erro para que o UI saiba que falhou no servidor
+      throw error;
     }
   }
 }
