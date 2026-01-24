@@ -107,10 +107,7 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                                 <span className="block text-[9px] text-white/40 uppercase font-bold tracking-widest mb-1">Quilometragem</span>
                                 <span className="text-white text-lg">{vehicle.km ? `${vehicle.km.toLocaleString('pt-BR')} KM` : '-'}</span>
                             </div>
-                            <div>
-                                <span className="block text-[9px] text-white/40 uppercase font-bold tracking-widest mb-1">Cor</span>
-                                <span className="text-white text-lg uppercase">{vehicle.color || '-'}</span>
-                            </div>
+
                             <div>
                                 <span className="block text-[9px] text-white/40 uppercase font-bold tracking-widest mb-1">Combustível</span>
                                 <span className="text-white text-lg">{vehicle.fuel || '-'}</span>
@@ -120,17 +117,16 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                         {vehicle.specs && (
                             <div className="bg-white/5 p-5 rounded-2xl border border-white/5 mt-4">
                                 <span className="block text-[9px] text-gold uppercase font-bold tracking-widest mb-2">Detalhes Adicionais</span>
-                                <p className="text-white/80 text-sm leading-relaxed">{vehicle.specs}</p>
+                                <p className="text-white/80 text-sm leading-relaxed">{vehicle.specs ? vehicle.specs.split('|').filter(s => !s.trim().toUpperCase().startsWith('COR:')).join(' | ') : ''}</p>
                             </div>
                         )}
                     </div>
 
                     <button
                         onClick={() => onInterest(vehicle)}
-                        className="w-full py-5 bg-gold text-black hover:bg-gold-light active:scale-95 transition-all rounded-xl flex items-center justify-center gap-3 group shadow-xl shadow-gold/10"
+                        className="w-full py-2 bg-[#25D366] hover:bg-[#128C7E] text-white active:scale-95 transition-all rounded-xl flex items-center justify-center gap-3 group shadow-[0_0_20px_rgba(37,211,102,0.3)] hover:shadow-[0_0_30px_rgba(37,211,102,0.5)] animate-pulse hover:animate-none"
                     >
-                        <span className="text-sm font-bold uppercase tracking-wider">TENHO INTERESSE</span>
-                        <span className="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">whatsapp</span>
+                        <span className="text-base font-bold uppercase tracking-wider">Whatsapp</span>
                     </button>
                 </div>
             </div>

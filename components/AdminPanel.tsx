@@ -121,7 +121,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [newPrice, setNewPrice] = useState('');
   const [newPlateLast3, setNewPlateLast3] = useState(''); // Estado para placa
   const [newYear, setNewYear] = useState('');
-  const [newColor, setNewColor] = useState('');
+
   const [newKM, setNewKM] = useState('');
   const [newSpecs, setNewSpecs] = useState('');
   const [newCategory, setNewCategory] = useState('');
@@ -273,7 +273,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
       const parts = [
         newYear && `ANO: ${newYear}`,
-        newColor && `COR: ${newColor}`,
+
         newType === VehicleType.MOTO && newDisplacement && `${newDisplacement} CC`,
         newType === VehicleType.CARRO && `${newTransmission} | ${newFuel}`,
         kmHighlight && `[${kmHighlight}]`,
@@ -315,7 +315,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       // Limpar Estado
       setImagePreviews([]); setImageFiles([]);
       setVideoPreviews([]); setVideoFiles([]);
-      setNewName(''); setNewPrice(''); setNewKM(''); setNewColor(''); setNewYear('');
+      setNewName(''); setNewPrice(''); setNewKM(''); setNewYear('');
       setNewPlateLast3(''); // Limpar placa
       setNewImagePos('50% 50%');
       setIsFeatured(false); setIsPromoSemana(false);
@@ -690,33 +690,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       <input value={newYear} onChange={e => setNewYear(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="2024" />
                     </div>
                     <div>
-                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cor</label>
-                      <input value={newColor} onChange={e => setNewColor(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none uppercase" placeholder="PRETO" />
-                    </div>
-                    {newType === VehicleType.MOTO ? (
-                      <div>
-                        <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cilindradas (CC)</label>
-                        <input value={newDisplacement} onChange={e => setNewDisplacement(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="1000" />
-                      </div>
-                    ) : (
-                      <>
+
+                      {newType === VehicleType.MOTO ? (
                         <div>
-                          <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Câmbio</label>
-                          <select value={newTransmission} onChange={e => setNewTransmission(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none">
-                            <option value="Automático">Automático</option>
-                            <option value="Manual">Manual</option>
-                          </select>
+                          <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cilindradas (CC)</label>
+                          <input value={newDisplacement} onChange={e => setNewDisplacement(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="1000" />
                         </div>
-                      </>
-                    )}
-                    <div>
-                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">COD3 (Final Placa)</label>
-                      <input
-                        value={newPlateLast3}
-                        onChange={(e) => setNewPlateLast3(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none font-mono tracking-widest text-center"
-                        placeholder="000"
-                      />
+                      ) : (
+                        <>
+                          <div>
+                            <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Câmbio</label>
+                            <select value={newTransmission} onChange={e => setNewTransmission(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none">
+                              <option value="Automático">Automático</option>
+                              <option value="Manual">Manual</option>
+                            </select>
+                          </div>
+                        </>
+                      )}
+                      <div>
+                        <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">COD3 (Final Placa)</label>
+                        <input
+                          value={newPlateLast3}
+                          onChange={(e) => setNewPlateLast3(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                          className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none font-mono tracking-widest text-center"
+                          placeholder="000"
+                        />
+                      </div>
                     </div>
                   </div>
 
