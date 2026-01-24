@@ -240,8 +240,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleSaveVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName || currentImages.length === 0) {
-      setUploadError("Nome e Pelo menos 1 Foto são obrigatórios.");
+    if (!newName || currentImages.length === 0 || !newPlateLast3) {
+      setUploadError("Nome, Placa (Final) e Pelo menos 1 Foto são obrigatórios.");
       return;
     }
 
@@ -815,12 +815,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         </>
                       )}
                       <div>
-                        <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">COD3 (Final Placa)</label>
+                        <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">PLACA (Final 3 Dígitos) *</label>
                         <input
                           value={newPlateLast3}
-                          onChange={(e) => setNewPlateLast3(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                          className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none font-mono tracking-widest text-center"
-                          placeholder="000"
+                          onChange={(e) => setNewPlateLast3(e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 3).toUpperCase())}
+                          className={`w-full bg-surface-light border ${!newPlateLast3 ? 'border-red-500/30' : 'border-white/5'} text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none font-mono tracking-widest text-center uppercase`}
+                          placeholder="ABC"
                         />
                       </div>
                     </div>

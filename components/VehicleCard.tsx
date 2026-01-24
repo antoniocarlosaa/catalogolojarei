@@ -151,7 +151,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
           {/* Cod & Placa Section */}
           <div className="flex items-center justify-between text-[9px] text-white/40 font-monouppercase tracking-wider mt-1 border-t border-white/5 pt-1">
             {vehicle.plate_last3 && (
-              <span title={`Final Placa: ${vehicle.plate_last3}`}>COD3: {vehicle.plate_last3}</span>
+              <span title={`Final Placa: ${vehicle.plate_last3}`}>PLACA: {vehicle.plate_last3}</span>
             )}
           </div>
 
