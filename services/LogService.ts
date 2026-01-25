@@ -116,6 +116,16 @@ class LogService {
         const { error } = await supabase.from('audit_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         if (error) throw error;
     }
+
+    // Contar Total de Visitas (Público/Discreto)
+    async getVisitCount() {
+        const { count, error } = await supabase
+            .from('access_logs')
+            .select('*', { count: 'exact', head: true });
+
+        if (error) return 0;
+        return count || 0;
+    }
 }
 
 export const logger = new LogService();

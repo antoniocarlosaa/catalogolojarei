@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null); // State Global do Modal
   const [settings, setSettings] = useState<AppSettings>({ whatsappNumbers: [], googleMapsUrl: '' });
   const [loading, setLoading] = useState(true);
+  const [visitCount, setVisitCount] = useState(0);
   const [filter, setFilter] = useState<CategoryFilter>('TUDO');
   const [search, setSearch] = useState('');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -50,12 +51,14 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [vData, sData] = await Promise.all([
+        const [vData, sData, vCount] = await Promise.all([
           db.getAllVehicles(),
-          db.getSettings()
+          db.getSettings(),
+          logger.getVisitCount()
         ]);
         setVehicles(vData);
         setSettings(sData);
+        setVisitCount(vCount);
       } catch (err) {
         console.error("Erro ao conectar ao banco:", err);
       } finally {
@@ -254,6 +257,17 @@ const App: React.FC = () => {
 
         </div>
       </main>
+
+      {/* Footer Discreto com Contador */}
+      <footer className="w-full py-6 text-center border-t border-white/5 mt-auto">
+        <div className="flex flex-col items-center justify-center gap-2 text-[10px] text-white/20 uppercase tracking-widest font-bold">
+          <span>Rei das Motos Luxury Catalog &copy; {new Date().getFullYear()}</span>
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 transition-colors cursor-default" title="Total de Visitas">
+            <span className="material-symbols-outlined text-xs">visibility</span>
+            <span>{visitCount.toLocaleString('pt-BR')} Visitas</span>
+          </div>
+        </div>
+      </footer>
 
       {/* MODALS */}
       {isAdminOpen && (
