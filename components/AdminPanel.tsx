@@ -837,7 +837,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
                     <div>
                       <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cor</label>
-                      <input value={newColor} onChange={e => setNewColor(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="Ex: PRETO" />
+                      <input value={newColor} onChange={e => setNewColor(e.target.value.toUpperCase())} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="Ex: PRETO" />
                     </div>
                     <div>
 
