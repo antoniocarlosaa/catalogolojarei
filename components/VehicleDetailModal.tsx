@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Vehicle } from '../types';
+import ImageLightbox from './ImageLightbox';
 
 interface VehicleDetailModalProps {
     vehicle: Vehicle;
@@ -9,6 +10,7 @@ interface VehicleDetailModalProps {
 
 const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClose, onInterest }) => {
     const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const images = vehicle.images && vehicle.images.length > 0 ? vehicle.images : [vehicle.imageUrl];
 
     return (
@@ -30,9 +32,18 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                     <div className="flex-1 relative aspect-video lg:aspect-auto overflow-hidden group">
                         <img
                             src={images[activeImageIndex]}
-                            className="w-full h-full object-contain bg-black/40"
+                            className="w-full h-full object-contain bg-black/40 cursor-zoom-in"
                             alt={vehicle.name}
+                            onClick={() => setIsLightboxOpen(true)}
                         />
+
+                        {isLightboxOpen && (
+                            <ImageLightbox
+                                src={images[activeImageIndex]}
+                                alt={vehicle.name}
+                                onClose={() => setIsLightboxOpen(false)}
+                            />
+                        )}
 
                         {/* Navegação de Imagens */}
                         {images.length > 1 && (

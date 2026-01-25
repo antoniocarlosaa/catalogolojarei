@@ -274,7 +274,7 @@ class VehicleService {
 
       if (existing) {
         // Atualizar configuração existente
-        const { error } = await supabase
+        const { data: updatedData, error } = await supabase
           .from('settings')
           .update({
             whatsapp_numbers: settings.whatsappNumbers,
@@ -284,9 +284,13 @@ class VehicleService {
             card_image_fit: settings.cardImageFit,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', existing.id);
+          .eq('id', existing.id)
+          .select(); // Verificar se realmente salvou
 
         if (error) throw error;
+        if (!updatedData || updatedData.length === 0) {
+          throw new Error("Salvo falhou: O banco recusou a edição. Tente deslogar e logar novamente.");
+        }
       } else {
         // Criar nova configuração
         const { error } = await supabase

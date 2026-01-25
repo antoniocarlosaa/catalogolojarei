@@ -222,15 +222,11 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
               </button>
             </div>
           </div>
+        </div>
       )}
 
-          {/* Featured Variant Button (Hidden default, appears on hover or implemented differently if needed, keeping it simple for cinematic look: Click whole card or add button overlay?) 
-          Current implementation for featured relies on whole card click or we can add a subtle button in the overlay if requested.
-          For now, allowing whole card 'onClick' to handle view. 
-      */}
-
-        </div >
-      );
+    </div>
+  );
 };
 
-      export default VehicleCard;
+export default VehicleCard;
