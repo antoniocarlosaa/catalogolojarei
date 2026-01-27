@@ -32,9 +32,22 @@ const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick }) => {
 
             <div className="w-full max-w-[1400px] mx-auto px-6 py-4 flex items-center justify-between">
                 {/* LOGO AREA */}
-                <div className="flex items-center gap-2">
-                    {/* Placeholder for Logo - text for now */}
-                    <h1 className="text-2xl font-bold italic tracking-tighter text-white">
+                <div className="flex items-center gap-4">
+                    {/* HOME BUTTON */}
+                    <button
+                        onClick={() => {
+                            setFilter('TUDO');
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="w-10 h-10 flex items-center justify-center text-white/80 hover:text-gold transition-colors rounded-full hover:bg-white/10"
+                        aria-label="Ir para Início"
+                        title="Início"
+                    >
+                        <span className="material-symbols-outlined text-2xl">home</span>
+                    </button>
+
+                    {/* LOGO */}
+                    <h1 className="text-2xl font-bold italic tracking-tighter text-white cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                         REI DAS <span className="text-gold">MOTOS</span>
                     </h1>
                 </div>

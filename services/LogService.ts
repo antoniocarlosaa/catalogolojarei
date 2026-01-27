@@ -123,7 +123,10 @@ class LogService {
             .from('access_logs')
             .select('*', { count: 'exact', head: true });
 
-        if (error) return 0;
+        if (error) {
+            console.error('❌ ERRO AO CONTAR VISITAS:', error.message, error.details, error.hint);
+            return 0;
+        }
         return count || 0;
     }
 }
