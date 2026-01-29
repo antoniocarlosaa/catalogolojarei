@@ -201,6 +201,9 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans relative">
+      <div className="absolute top-0 right-0 p-2 text-[10px] text-green-500 font-mono z-[9999] pointer-events-none opacity-50 bg-black/50">
+        V3.0 ONLINE
+      </div>
       <Header
         filter={filter}
         setFilter={setFilter}
