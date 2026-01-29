@@ -104,8 +104,21 @@ const App: React.FC = () => {
   const motosEstoque = useMemo(() => filteredVehicles.filter(v => v.type === VehicleType.MOTO && !v.isSold), [filteredVehicles]);
   const carrosEstoque = useMemo(() => filteredVehicles.filter(v => v.type === VehicleType.CARRO && !v.isSold), [filteredVehicles]);
 
-  // Veículos Vendidos (recente)
-  const motosVendidas = useMemo(() => vehicles.filter(v => v.isSold).slice(0, 10), [vehicles]); // Mostrar as 10 últimas vendas globais
+  // Veículos Vendidos (recente) - Ordenar pela data da venda (soldAt) se existir, ou fallback para created_at
+  const motosVendidas = useMemo(() => {
+    return vehicles
+      .filter(v => v.isSold)
+      .sort((a, b) => {
+        // Se ambos tiverem soldAt, ordena pelo mais recente
+        if (a.soldAt && b.soldAt) return new Date(b.soldAt).getTime() - new Date(a.soldAt).getTime();
+        // Se um tem soldAt e outro não, o que tem vem primeiro
+        if (a.soldAt) return -1;
+        if (b.soldAt) return 1;
+        // Se nenhum tem (fallback antigo), mantém ordem original (created_at desc)
+        return 0;
+      })
+      .slice(0, 10);
+  }, [vehicles]);
 
   // Ultimos Lançamentos (INCLUI VENDIDOS com badge)
   // O user pediu para aparecer no carrossel de ultimos lançamentos
@@ -256,28 +269,12 @@ const App: React.FC = () => {
             />
           )}
 
-          {/* SEPARATOR */}
-          {(motosEstoque.length > 0) && (carrosEstoque.length > 0) && (
-            <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(255,215,0,0.3)]"></div>
-          )}
-
-          {/* CARROS GRID */}
-          {(carrosEstoque.length > 0) && (filter === 'TUDO' || filter === 'CARROS') && (
-            <StockGrid
-              title="Carros em Estoque"
-              vehicles={carrosEstoque.slice(0, 12)}
-              onInterest={handleInterest}
-              onViewDetails={handleViewDetails}
-              imageFit={settings.cardImageFit}
-            />
-          )}
-
-          {/* SEÇÃO DE VENDIDOS (NOVA) */}
-          {(motosVendidas.length > 0) && (filter === 'TUDO') && (
+          {/* SEÇÃO DE VENDIDOS (NOVA) - AGORA VISÍVEL EM TODAS AS ABAS E ORDENADA POR DATA DA VENDA */}
+          {(motosVendidas.length > 0) && (
             <>
               <div className="w-full h-px bg-white/10 my-12 shadow-[0_0_30px_rgba(37,211,102,0.3)]"></div>
               <StockCarousel
-                title="Galeria de Entregas (Vendidos)"
+                title="Galeria de Entregas (Vendidos Recentemente)"
                 vehicles={motosVendidas}
                 onInterest={handleInterest}
                 onViewDetails={handleViewDetails}

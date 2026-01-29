@@ -1217,8 +1217,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                 {/* Se não estiver vendido e estiver marcando como vendido, mostrar upload */}
                 {confirmSoldId && !vehicles.find(v => v.id === confirmSoldId)?.isSold && (
-                  <div className="text-left bg-white/5 p-4 rounded-xl border border-white/5">
-                    <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-2 block">Foto da Entrega (Opcional)</label>
+                  <div className="text-left bg-white/5 p-6 rounded-2xl border border-dashed border-white/20 hover:bg-white/10 transition-colors group">
+                    <label className="text-[10px] text-gold uppercase font-bold tracking-widest mb-3 block text-center">
+                      📸 Foto da Entrega (Opcional)
+                    </label>
                     <input
                       type="file"
                       id="sales-photo-upload"
@@ -1226,29 +1228,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       className="hidden"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          // Hack rápido: adicionar propriedade temporária ao objeto vehicles state local apenas para este modal
-                          // Melhor: usar um state local aqui.
-                          // Vou usar a ref ou um state temporário se possível.
-                          // Como o componente é grande, vou injetar o state `deliveryPhoto` no inicio do componente primeiro.
-                          // Mas como estou editando apenas este bloco, vou assumir que vou adicionar o state depois.
-                          // VOU USAR UMA VARIÁVEL GLOBAL TEMPORÁRIA OU STATE NO PROXIMO PASS...
-                          // ERRATA: Vou adicionar o State no inicio do arquivo em outra chamada.
-                          // AQUI vou apenas referenciar um state `deliveryPhoto` e `setDeliveryPhoto` que criarei.
-                          setDeliveryPhoto(file);
-                        }
+                        if (file) setDeliveryPhoto(file);
                       }}
                     />
                     <label
                       htmlFor="sales-photo-upload"
-                      className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-white/10 transition-colors"
+                      className={`flex flex-col items-center justify-center gap-3 cursor-pointer p-4 rounded-xl transition-all ${deliveryPhoto ? 'bg-green-500/10 border border-green-500/50' : 'bg-black/30 border border-white/10 hover:border-gold/50'}`}
                     >
-                      <div className="w-10 h-10 bg-black/50 rounded-lg flex items-center justify-center text-white/50 border border-white/10">
-                        {deliveryPhoto ? <img src={URL.createObjectURL(deliveryPhoto)} className="w-full h-full object-cover rounded-lg" /> : <span className="material-symbols-outlined">add_a_photo</span>}
-                      </div>
-                      <span className="text-[10px] text-white/50 uppercase font-bold">
-                        {deliveryPhoto ? "Foto Selecionada" : "Adicionar Foto"}
-                      </span>
+                      {deliveryPhoto ? (
+                        <>
+                          <div className="w-24 h-24 rounded-lg overflow-hidden shadow-lg border border-white/20">
+                            <img src={URL.createObjectURL(deliveryPhoto)} className="w-full h-full object-cover" />
+                          </div>
+                          <span className="text-[10px] text-green-400 font-bold uppercase tracking-widest bg-green-900/30 px-3 py-1 rounded-full">
+                            Foto Selecionada
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-white/50 group-hover:text-gold group-hover:scale-110 transition-all">
+                            <span className="material-symbols-outlined text-2xl">add_a_photo</span>
+                          </div>
+                          <span className="text-[10px] text-white/50 group-hover:text-white uppercase font-bold text-center">
+                            Clique para adicionar foto
+                          </span>
+                        </>
+                      )}
                     </label>
                   </div>
                 )}
