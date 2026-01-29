@@ -49,10 +49,12 @@ const App: React.FC = () => {
   }, [vehicles]);
 
   useEffect(() => {
+    console.log("🚀 VERSION: SOLD_FEATURES_UPDATE_V3 (Final)"); // Marcador de versão para debug
     const loadData = async () => {
       try {
         // Limpeza de veículos antigos ao iniciar
         await db.cleanupOldSoldVehicles();
+        console.log('Limpeza de veículos antigos efetuada.');
 
         const [vData, sData, vCount] = await Promise.all([
           db.getAllVehicles(),
