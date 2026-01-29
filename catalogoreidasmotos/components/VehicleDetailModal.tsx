@@ -11,7 +11,16 @@ interface VehicleDetailModalProps {
 const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClose, onInterest }) => {
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-    const images = vehicle.images && vehicle.images.length > 0 ? vehicle.images : [vehicle.imageUrl];
+
+    // Logic to determine which images to show
+    let images: string[] = [];
+    if (vehicle.isSold && vehicle.salesPhotoUrl) {
+        // If sold and has sales photo: Show Sales Photo + Original Cover Photo (Exactly 2 photos)
+        images = [vehicle.salesPhotoUrl, vehicle.imageUrl];
+    } else {
+        // Default behavior: Show all images or just the cover if no gallery
+        images = vehicle.images && vehicle.images.length > 0 ? vehicle.images : [vehicle.imageUrl];
+    }
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
