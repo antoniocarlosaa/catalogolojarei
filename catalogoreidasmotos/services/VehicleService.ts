@@ -24,20 +24,12 @@ class VehicleService {
         return this.getFallbackVehicles();
       }
 
-      // Converter dados do Supabase
+      // Conversão
       const supabaseVehicles = data.map(v => this.convertFromDatabase(v));
 
-      // Mesclar com dados locais que podem não ter sido sincronizados (falha no save)
-      const localVehicles = this.getFallbackVehicles();
-      const supabaseIds = new Set(supabaseVehicles.map(v => v.id));
-
-      // Encontrar veículos que estão no local mas não no supabase
-      const missingVehicles = localVehicles.filter(v => !supabaseIds.has(v.id));
-
-      if (missingVehicles.length > 0) {
-        console.log(`Encontrados ${missingVehicles.length} veículos apenas locais. Mesclando...`);
-        return [...missingVehicles, ...supabaseVehicles];
-      }
+      // Se temos dados do Supabase, ATUALIZAMOS o cache local com a verdade do servidor.
+      // Isso remove "fantasmas" (veículos deletados em outros dispositivos).
+      localStorage.setItem(this.storageKey, JSON.stringify(supabaseVehicles));
 
       return supabaseVehicles;
     } catch (error) {
@@ -73,6 +65,7 @@ class VehicleService {
       isPromoSemana: dbVehicle.is_promo_semana || false,
       isPromoMes: dbVehicle.is_promo_mes || false,
       isZeroKm: dbVehicle.is_zero_km || false,
+      isRepasse: dbVehicle.is_repasse || false,
       specs: dbVehicle.specs,
       km: dbVehicle.km,
       year: dbVehicle.year,
@@ -88,7 +81,47 @@ class VehicleService {
       hasSpareKey: dbVehicle.has_spare_key || false,
       hasRevisoes: dbVehicle.has_revisoes || false,
       imagePosition: dbVehicle.image_position,
+      plate_last3: dbVehicle.plate_last3,
+      salesPhotoUrl: dbVehicle.sales_photo_url,
+      soldAt: dbVehicle.sold_at,
     };
+  }
+
+  // Falback para configurações
+  // ... (rest of code)
+
+  // Clean up old sold vehicles (> 15 days)
+  async cleanupOldSoldVehicles(): Promise<void> {
+    try {
+      const { data: soldVehicles, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('is_sold', true);
+
+      if (error || !soldVehicles) return;
+
+      const now = new Date();
+      const fifteenDaysAgo = new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000));
+
+      const toDelete = soldVehicles.filter(v => {
+        if (!v.sold_at) return false; // Se não tem data, não deleta automaticamente (segurança)
+        const soldDate = new Date(v.sold_at);
+        return soldDate < fifteenDaysAgo;
+      });
+
+      if (toDelete.length === 0) return;
+
+      console.log(`🧹 Limpando ${toDelete.length} veículos vendidos há mais de 15 dias...`);
+
+      for (const v of toDelete) {
+        await this.deleteVehicle(v.id);
+        // Tentar limpar imagens também seria ideal, mas arriscado sem bucket management complexo. 
+        // O Supabase não deleta arquivos automaticamente ao deletar registro.
+        // Por enquanto, apenas removemos do banco/vitrine.
+      }
+    } catch (err) {
+      console.error("Erro na limpeza automática:", err);
+    }
   }
 
   // Salvar novo veículo
@@ -116,6 +149,7 @@ class VehicleService {
           is_promo_semana: vehicle.isPromoSemana || false,
           is_promo_mes: vehicle.isPromoMes || false,
           is_zero_km: vehicle.isZeroKm || false,
+          is_repasse: vehicle.isRepasse || false,
           specs: vehicle.specs,
           km: vehicle.km,
           year: vehicle.year,
@@ -130,14 +164,18 @@ class VehicleService {
           has_manual: vehicle.hasManual || false,
           has_spare_key: vehicle.hasSpareKey || false,
           has_revisoes: vehicle.hasRevisoes || false,
-          image_position: vehicle.imagePosition,
+          plate_last3: vehicle.plate_last3,
+          sales_photo_url: vehicle.salesPhotoUrl,
+          sold_at: vehicle.soldAt,
         }]);
 
       if (error) {
         console.warn('Erro ao salvar no Supabase, mantido apenas local:', error);
+        alert(`Erro de sincronização (Supabase): ${error.message || JSON.stringify(error)}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao conectar com Supabase, mantido apenas local:', error);
+      alert(`Erro de conexão: ${error.message || JSON.stringify(error)}`);
     }
   }
 
@@ -161,7 +199,32 @@ class VehicleService {
       if (updates.isPromoSemana !== undefined) updateData.is_promo_semana = updates.isPromoSemana;
       if (updates.isPromoMes !== undefined) updateData.is_promo_mes = updates.isPromoMes;
       if (updates.specs !== undefined) updateData.specs = updates.specs;
+      if (updates.plate_last3 !== undefined) updateData.plate_last3 = updates.plate_last3;
+      if (updates.color !== undefined) updateData.color = updates.color;
+      if (updates.km !== undefined) updateData.km = updates.km;
+      if (updates.year !== undefined) updateData.year = updates.year;
+
+      if (updates.type !== undefined) updateData.type = updates.type;
+      if (updates.imageUrl !== undefined) updateData.image_url = updates.imageUrl;
+      if (updates.images !== undefined) updateData.images = updates.images;
+      if (updates.videoUrl !== undefined) updateData.video_url = updates.videoUrl;
+      if (updates.videos !== undefined) updateData.videos = updates.videos;
+      if (updates.isZeroKm !== undefined) updateData.is_zero_km = updates.isZeroKm;
+      if (updates.isRepasse !== undefined) updateData.is_repasse = updates.isRepasse;
+      if (updates.category !== undefined) updateData.category = updates.category;
+      if (updates.displacement !== undefined) updateData.displacement = updates.displacement;
+      if (updates.transmission !== undefined) updateData.transmission = updates.transmission;
+      if (updates.fuel !== undefined) updateData.fuel = updates.fuel;
+      if (updates.motor !== undefined) updateData.motor = updates.motor;
+      if (updates.isSingleOwner !== undefined) updateData.is_single_owner = updates.isSingleOwner;
+      if (updates.hasDut !== undefined) updateData.has_dut = updates.hasDut;
+      if (updates.hasManual !== undefined) updateData.has_manual = updates.hasManual;
+      if (updates.hasSpareKey !== undefined) updateData.has_spare_key = updates.hasSpareKey;
+      if (updates.hasRevisoes !== undefined) updateData.has_revisoes = updates.hasRevisoes;
       if (updates.imagePosition !== undefined) updateData.image_position = updates.imagePosition;
+
+      if (updates.salesPhotoUrl !== undefined) updateData.sales_photo_url = updates.salesPhotoUrl;
+      if (updates.soldAt !== undefined) updateData.sold_at = updates.soldAt;
 
       const { error } = await supabase
         .from('vehicles')
@@ -170,9 +233,11 @@ class VehicleService {
 
       if (error) {
         console.warn('Erro ao atualizar no Supabase, mantido local:', error);
+        alert(`Erro ao atualizar (Supabase): ${error.message || JSON.stringify(error)}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao conectar com Supabase, mantido local:', error);
+      alert(`Erro de conexão na atualização: ${error.message || JSON.stringify(error)}`);
     }
   }
 
@@ -238,10 +303,10 @@ class VehicleService {
 
   // Salvar configurações
   async saveSettings(settings: AppSettings): Promise<void> {
-    try {
-      // Salvar localmente primeiro
-      localStorage.setItem(this.settingsKey, JSON.stringify(settings));
+    // Salvar localmente primeiro
+    localStorage.setItem(this.settingsKey, JSON.stringify(settings));
 
+    try {
       // Primeiro, buscar o ID da configuração existente
       const { data: existing } = await supabase
         .from('settings')
@@ -251,7 +316,7 @@ class VehicleService {
 
       if (existing) {
         // Atualizar configuração existente
-        const { error } = await supabase
+        const { data: updatedData, error } = await supabase
           .from('settings')
           .update({
             whatsapp_numbers: settings.whatsappNumbers,
@@ -261,9 +326,13 @@ class VehicleService {
             card_image_fit: settings.cardImageFit,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', existing.id);
+          .eq('id', existing.id)
+          .select(); // Verificar se realmente salvou
 
         if (error) throw error;
+        if (!updatedData || updatedData.length === 0) {
+          throw new Error("Salvo falhou: O banco recusou a edição. Tente deslogar e logar novamente.");
+        }
       } else {
         // Criar nova configuração
         const { error } = await supabase
@@ -278,12 +347,13 @@ class VehicleService {
 
         if (error) throw error;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar configurações no Supabase:', error);
-      // Fallback silencioso: já salvou no LocalStorage
-      // Não alertamos o usuário para não interromper o fluxo, mas o erro está no console
+      // RE-THROW erro para que o UI saiba que falhou no servidor
+      throw error;
     }
   }
 }
 
 export const db = new VehicleService();
+

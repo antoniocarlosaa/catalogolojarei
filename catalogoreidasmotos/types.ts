@@ -19,6 +19,7 @@ export interface Vehicle {
   isPromoSemana?: boolean;
   isPromoMes?: boolean;
   isZeroKm?: boolean; // Indica se é 0 KM
+  isRepasse?: boolean; // Veículo de repasse
   specs?: string;
   km?: number;
   year?: string; // Ano do veículo
@@ -35,6 +36,9 @@ export interface Vehicle {
   transmission?: string; // For cars
   fuel?: string; // For cars
   motor?: string; // Motor do carro (ex: 1.0, 2.0 Turbo)
+  plate_last3?: string; // Últimos 3 dígitos da placa
+  salesPhotoUrl?: string; // Foto da venda (entrega)
+  soldAt?: string; // Data da venda (ISO string)
 }
 
 export type CategoryFilter = 'TUDO' | 'MOTOS' | 'CARROS' | 'PROMOÇÕES';
