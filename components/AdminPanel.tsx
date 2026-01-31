@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Vehicle, VehicleType } from '../types';
+import { Vehicle, VehicleType, AppSettings } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { logger, AccessLog, AuditLog } from '../services/LogService';
 import { supabase } from '../services/supabase';
@@ -52,6 +52,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [backgroundPos, setBackgroundPos] = useState(currentBackgroundPosition || '50% 50%');
   const [cardImageFit, setCardImageFit] = useState<'cover' | 'contain'>(currentCardImageFit || 'cover');
   const [confirmSoldId, setConfirmSoldId] = useState<string | null>(null);
+  const [deliveryPhoto, setDeliveryPhoto] = useState<File | null>(null); // State para foto da entrega
 
   // States para Logs
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
@@ -1203,35 +1204,104 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
 
 
-          {confirmSoldId && (
-            <div className="absolute inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-8">
-              <div className="bg-surface border border-white/10 p-10 rounded-[2.5rem] max-w-sm w-full text-center space-y-8 shadow-3xl">
-                <span className="material-symbols-outlined text-red-500 text-5xl">shopping_cart_checkout</span>
-                <h3 className="text-white font-heading text-xl uppercase tracking-wider">Confirmar Alteração</h3>
-                <p className="text-white/50 text-xs">
-                  {vehicles.find(v => v.id === confirmSoldId)?.isSold
-                    ? "Deseja marcar este veículo como DISPONÍVEL novamente?"
-                    : "Deseja marcar este veículo como VENDIDO? Ele sairá da vitrine principal."}
-                </p>
-                <div className="flex flex-col gap-3">
-                  <button
-                    onClick={() => {
-                      const v = vehicles.find(v => v.id === confirmSoldId);
-                      if (v) {
-                        onUpdateVehicle(confirmSoldId, { isSold: !v.isSold });
-                        if (user?.email) logger.logAction(user.email, 'EDITAR', v.name, v.isSold ? 'Marcou como Disponível' : 'Marcou como Vendido');
-                      }
-                      setConfirmSoldId(null);
-                    }}
-                    className="w-full py-5 bg-gold text-black text-[11px] font-bold uppercase tracking-widest rounded-full hover:brightness-110"
-                  >
-                    Sim, confirmar
-                  </button>
-                  <button onClick={() => setConfirmSoldId(null)} className="w-full py-5 bg-white/5 text-white/50 text-[11px] font-bold uppercase tracking-widest rounded-full hover:bg-white/10 hover:text-white transition-all">Cancelar</button>
+          {confirmSoldId && (() => {
+            const vToConfirm = vehicles.find(v => v.id === confirmSoldId);
+            const isMarkingAsSold = vToConfirm && !vToConfirm.isSold;
+
+            return (
+              <div className="absolute inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-8">
+                <div className="bg-surface border border-white/10 p-10 rounded-[2.5rem] max-w-sm w-full text-center space-y-8 shadow-3xl">
+                  <span className="material-symbols-outlined text-red-500 text-5xl">shopping_cart_checkout</span>
+                  <h3 className="text-white font-heading text-xl uppercase tracking-wider">Confirmar Alteração</h3>
+                  <p className="text-white/50 text-xs">
+                    {!isMarkingAsSold
+                      ? "Deseja marcar este veículo como DISPONÍVEL novamente?"
+                      : "Deseja marcar este veículo como VENDIDO? Ele sairá da vitrine principal."}
+                  </p>
+
+                  {/* Se estiver marcando como vendido, mostrar upload */}
+                  {isMarkingAsSold && (
+                    <div className="text-left bg-white/5 p-6 rounded-2xl border border-dashed border-white/20 hover:bg-white/10 transition-colors group">
+                      <label className="text-[10px] text-gold uppercase font-bold tracking-widest mb-3 block text-center">
+                        📸 Foto da Entrega (Opcional)
+                      </label>
+                      <input
+                        type="file"
+                        id="sales-photo-upload"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setDeliveryPhoto(file);
+                        }}
+                      />
+                      <label
+                        htmlFor="sales-photo-upload"
+                        className={`flex flex-col items-center justify-center gap-3 cursor-pointer p-4 rounded-xl transition-all ${deliveryPhoto ? 'bg-green-500/10 border border-green-500/50' : 'bg-black/30 border border-white/10 hover:border-gold/50'}`}
+                      >
+                        {deliveryPhoto ? (
+                          <>
+                            <div className="w-24 h-24 rounded-lg overflow-hidden shadow-lg border border-white/20">
+                              <img src={URL.createObjectURL(deliveryPhoto)} className="w-full h-full object-cover" />
+                            </div>
+                            <span className="text-[10px] text-green-400 font-bold uppercase tracking-widest bg-green-900/30 px-3 py-1 rounded-full">
+                              Foto Selecionada
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-white/50 group-hover:text-gold group-hover:scale-110 transition-all">
+                              <span className="material-symbols-outlined text-2xl">add_a_photo</span>
+                            </div>
+                            <span className="text-[10px] text-white/50 group-hover:text-white uppercase font-bold text-center">
+                              Clique para adicionar foto
+                            </span>
+                          </>
+                        )}
+                      </label>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={async () => {
+                        if (vToConfirm) {
+                          let salesUrl = vToConfirm.salesPhotoUrl;
+
+                          // Upload da foto se houver
+                          if (!vToConfirm.isSold && deliveryPhoto) {
+                            try {
+                              salesUrl = await uploadFileToStorage(deliveryPhoto);
+                            } catch (err) {
+                              console.error(err);
+                              alert("Erro ao enviar foto, salvando sem foto.");
+                            }
+                          }
+
+                          const isNowSold = !vToConfirm.isSold;
+                          const soldAt = isNowSold ? new Date().toISOString() : undefined;
+
+                          onUpdateVehicle(confirmSoldId, {
+                            isSold: isNowSold,
+                            salesPhotoUrl: salesUrl,
+                            soldAt: soldAt
+                          });
+
+                          if (user?.email) logger.logAction(user.email, 'EDITAR', vToConfirm.name, isNowSold ? 'Marcou como Vendido' : 'Marcou como Disponível');
+                        }
+                        setConfirmSoldId(null);
+                        setDeliveryPhoto(null);
+                      }}
+                      className="w-full py-5 bg-gold text-black text-[11px] font-bold uppercase tracking-widest rounded-full hover:brightness-110"
+                    >
+                      Sim, confirmar
+                    </button>
+                    <button onClick={() => { setConfirmSoldId(null); setDeliveryPhoto(null); }} className="w-full py-5 bg-white/5 text-white/50 text-[11px] font-bold uppercase tracking-widest rounded-full hover:bg-white/10 hover:text-white transition-all">Cancelar</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
     </div>

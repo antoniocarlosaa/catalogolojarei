@@ -31,7 +31,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
 
   return (
     <div
-      className={`relative bg-[#0d0d0d] rounded-xl overflow-hidden border border-white/5 group transition-all duration-300 hover:border-gold/30 flex flex-col h-full ${vehicle.isSold ? 'opacity-40 grayscale' : ''}`}
+      className={`relative bg-[#0d0d0d] rounded-xl overflow-hidden border border-white/5 group transition-all duration-300 hover:border-gold/30 flex flex-col h-full ${vehicle.isSold ? '' : ''} ${vehicle.isSold ? 'border-green-500/20' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => { setIsHovered(false); setZoomStyle({ transformOrigin: 'center center', scale: '1' }); }}
@@ -52,11 +52,11 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
             {imageFit === 'contain' && (
               <div
                 className="absolute inset-0 bg-cover bg-center opacity-30 blur-xl scale-110"
-                style={{ backgroundImage: `url(${vehicle.imageUrl})` }}
+                style={{ backgroundImage: `url(${vehicle.isSold && vehicle.salesPhotoUrl ? vehicle.salesPhotoUrl : vehicle.imageUrl})` }}
               />
             )}
             <img
-              src={vehicle.imageUrl}
+              src={vehicle.isSold && vehicle.salesPhotoUrl ? vehicle.salesPhotoUrl : vehicle.imageUrl}
               onError={() => setImageError(true)}
               className={`w-full h-full ${imageFit === 'cover' ? 'object-cover' : 'object-contain relative z-10'} transition-transform duration-700 ease-out`}
               style={{
@@ -68,6 +68,18 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
               loading="lazy"
               alt={vehicle.name}
             />
+
+            {/* Picture-in-Picture: Show Original Vehicle Image in corner if Sold and has Sales Photo */}
+            {vehicle.isSold && vehicle.salesPhotoUrl && (
+              <div className="absolute bottom-2 right-2 w-16 h-12 rounded-lg overflow-hidden border-2 border-white/50 shadow-lg z-20 bg-black/50">
+                <img
+                  src={vehicle.imageUrl}
+                  className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
+                  alt="Original"
+                  title="Foto Original"
+                />
+              </div>
+            )}
           </div>
         )}
 
