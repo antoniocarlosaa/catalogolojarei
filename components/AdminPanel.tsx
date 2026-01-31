@@ -909,6 +909,53 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           {
             activeTab === 'inventory' && (
               <div className="space-y-4 pb-10">
+                {/* DASHBOARD DE ESTATÍSTICAS (Estoque Real) */}
+                {(() => {
+                  const activeVehicles = vehicles.filter(v => !v.isSold);
+                  const totalStock = activeVehicles.length;
+                  const modelCounts = activeVehicles.reduce((acc, vehicle) => {
+                    const model = vehicle.name.toUpperCase().trim();
+                    acc[model] = (acc[model] || 0) + 1;
+                    return acc;
+                  }, {} as Record<string, number>);
+                  const sortedModels = Object.entries(modelCounts).sort(([, a], [, b]) => b - a);
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 animate-in slide-in-from-top-4 duration-500">
+                      {/* Card Total */}
+                      <div className="bg-gradient-to-br from-gold/20 to-black/50 p-6 rounded-3xl border border-gold/20 flex flex-col justify-center items-center relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                          <span className="material-symbols-outlined text-6xl text-gold">two_wheeler</span>
+                        </div>
+                        <h3 className="text-gold text-[10px] font-bold uppercase tracking-[0.2em] mb-2 z-10">Total em Estoque</h3>
+                        <div className="text-5xl font-heading text-white tracking-tighter z-10">{totalStock}</div>
+                        <div className="text-[9px] text-white/40 uppercase tracking-widest mt-2 z-10">{totalStock === 1 ? 'Veículo Disponível' : 'Veículos Disponíveis'}</div>
+                      </div>
+
+                      {/* Lista de Modelos */}
+                      <div className="md:col-span-2 bg-white/5 p-5 rounded-3xl border border-white/5 h-[160px] flex flex-col">
+                        <h3 className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-2 shrink-0">
+                          <span className="material-symbols-outlined text-sm">list</span> Contagem por Modelo
+                        </h3>
+                        <div className="overflow-y-auto custom-scrollbar pr-2 space-y-2 flex-1">
+                          {sortedModels.map(([model, count]) => (
+                            <div key={model} className="flex justify-between items-center p-2 rounded-lg bg-black/20 hover:bg-white/5 transition-colors border border-white/5">
+                              <span className="text-[10px] font-bold text-white uppercase truncate max-w-[70%]">{model}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[9px] text-white/30 uppercase hidden sm:block">unidades</span>
+                                <span className="text-[11px] font-heading text-gold bg-gold/10 px-2 py-0.5 rounded border border-gold/20 min-w-[24px] text-center">{count}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {sortedModels.length === 0 && (
+                            <div className="text-center text-[10px] text-white/20 py-8 italic">Nenhum modelo cadastrado</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {vehicles.filter(v => !v.isSold).map(v => (
                   <div key={v.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 flex items-start gap-4 group hover:border-white/20 transition-all">
                     <img src={v.imageUrl} className="w-20 h-20 rounded-2xl object-cover border border-white/5 shrink-0 mt-1" />

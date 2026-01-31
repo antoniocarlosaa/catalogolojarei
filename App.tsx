@@ -49,6 +49,7 @@ const App: React.FC = () => {
   }, [vehicles]);
 
   useEffect(() => {
+    console.log("🚀 VERSION: SOLD_FEATURES_UPDATE_V3 (Final)"); // Marcador de versão para debug
     const loadData = async () => {
       try {
         // Limpeza de veículos antigos ao iniciar
@@ -200,6 +201,9 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans relative">
+      <div className="absolute top-0 right-0 p-2 text-[10px] text-red-500 font-mono z-[9999] pointer-events-none opacity-80 bg-black/80 font-bold border-b border-l border-red-500 rounded-bl-xl">
+        V3.1 ONLINE (RED)
+      </div>
       <Header
         filter={filter}
         setFilter={setFilter}
@@ -224,7 +228,6 @@ const App: React.FC = () => {
               onInterest={handleInterest}
               onViewDetails={handleViewDetails}
               imageFit={settings.cardImageFit}
-              variant="featured"
             />
           )}
 
@@ -236,7 +239,6 @@ const App: React.FC = () => {
               onInterest={handleInterest}
               onViewDetails={handleViewDetails}
               imageFit={settings.cardImageFit}
-              variant="promo"
             />
           )}
 
@@ -253,7 +255,6 @@ const App: React.FC = () => {
               onInterest={handleInterest}
               onViewDetails={handleViewDetails}
               imageFit={settings.cardImageFit}
-              variant="default"
             />
           )}
 
@@ -273,30 +274,12 @@ const App: React.FC = () => {
             />
           )}
 
-
-          {/* SEPARATOR */}
-          {(carrosEstoque.length > 0) && (
-            <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(255,215,0,0.3)]"></div>
-          )}
-
-          {/* ESTOQUE DE CARROS (Grid) */}
-          {(carrosEstoque.length > 0) && (filter === 'TUDO' || filter === 'CARROS') && (
-            <StockGrid
-              title="Estoque de Carros"
-              vehicles={carrosEstoque}
-              onInterest={handleInterest}
-              onViewDetails={handleViewDetails}
-              imageFit={settings.cardImageFit}
-            />
-          )}
-
           {/* SEÇÃO DE VENDIDOS (NOVA) - AGORA VISÍVEL EM TODAS AS ABAS E ORDENADA POR DATA DA VENDA */}
           {(motosVendidas.length > 0) && (
             <>
               <div className="w-full h-px bg-white/10 my-12 shadow-[0_0_30px_rgba(37,211,102,0.3)]"></div>
-
               <StockCarousel
-                title="Galeria de Entregas (Vendidos Recentemente)"
+                title="Veículos Vendidos"
                 vehicles={motosVendidas}
                 onInterest={handleInterest}
                 onViewDetails={handleViewDetails}
