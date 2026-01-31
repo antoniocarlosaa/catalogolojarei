@@ -279,7 +279,7 @@ const App: React.FC = () => {
             <>
               <div className="w-full h-px bg-white/10 my-12 shadow-[0_0_30px_rgba(37,211,102,0.3)]"></div>
               <StockCarousel
-                title="Galeria de Entregas (Vendidos Recentemente)"
+                title="Veículos Vendidos"
                 vehicles={motosVendidas}
                 onInterest={handleInterest}
                 onViewDetails={handleViewDetails}
