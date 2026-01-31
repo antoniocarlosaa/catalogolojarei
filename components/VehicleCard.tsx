@@ -199,8 +199,15 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
               <span className="material-symbols-outlined text-base group-hover/btn:translate-x-1 transition-transform">visibility</span>
             </button>
 
-            <div className="mt-3 pt-3 border-t border-white/5 flex gap-2">
-              {/* WhatsApp */}
+            {/* WhatsApp - Condicional */}
+            {vehicle.isSold ? (
+              <button
+                disabled
+                className="flex-1 py-2 bg-red-900/40 text-white/50 font-bold rounded-full flex items-center justify-center gap-2 cursor-not-allowed border border-red-500/20"
+              >
+                <span className="text-xs font-bold tracking-wide uppercase">Vendido</span>
+              </button>
+            ) : (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -210,33 +217,32 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
               >
                 <span className="text-xs font-bold tracking-wide uppercase">WhatsApp</span>
               </button>
+            )}
 
-              {/* Share Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const url = `${window.location.origin}?v=${vehicle.id}`;
-                  if (navigator.share) {
-                    navigator.share({
-                      title: vehicle.name,
-                      text: `Confira este veículo: ${vehicle.name}`,
-                      url: url
-                    }).catch(console.error);
-                  } else {
-                    navigator.clipboard.writeText(url);
-                    alert('Link copiado!');
-                  }
-                }}
-                className="w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all hover:-translate-y-0.5 active:scale-95"
-                title="Compartilhar"
-              >
-                <span className="material-symbols-outlined text-sm">share</span>
-              </button>
-            </div>
+            {/* Share Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const url = `${window.location.origin}?v=${vehicle.id}`;
+                if (navigator.share) {
+                  navigator.share({
+                    title: vehicle.name,
+                    text: `Confira este veículo: ${vehicle.name}`,
+                    url: url
+                  }).catch(console.error);
+                } else {
+                  navigator.clipboard.writeText(url);
+                  alert('Link copiado!');
+                }
+              }}
+              className="w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all hover:-translate-y-0.5 active:scale-95"
+              title="Compartilhar"
+            >
+              <span className="material-symbols-outlined text-sm">share</span>
+            </button>
           </div>
         </div>
       )}
-
     </div>
   );
 };

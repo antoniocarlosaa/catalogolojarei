@@ -8,19 +8,17 @@ interface StockCarouselProps {
   onInterest: (vehicle: Vehicle) => void;
   onViewDetails: (vehicle: Vehicle) => void;
   imageFit?: 'cover' | 'contain';
+  variant?: 'default' | 'featured' | 'promo';
 }
 
-const StockCarousel: React.FC<StockCarouselProps> = ({ title, vehicles, onInterest, onViewDetails, imageFit }) => {
+const StockCarousel: React.FC<StockCarouselProps> = ({ title, vehicles, onInterest, onViewDetails, imageFit, variant: explicitVariant }) => {
   if (vehicles.length === 0) return null;
 
-  // Determine variant based on title keywords for now to avoid changing App.tsx immediately or add optional prop
-  // Ideally, App.tsx should pass it. But let's check props.
-  // Actually, I can infer it. 
-  // "Destaques" or "Promoções" -> featured
-  // "Motos" or "Carros" -> default
+  // Determine variant: Use explicit if provided, otherwise infer from title
+  const isTitleFeatured = title.includes('Destaque') || title.includes('Promoç');
+  const variant = explicitVariant || (isTitleFeatured ? 'featured' : 'default');
 
-  const isFeatured = title.includes('Destaque') || title.includes('Promoç');
-  const variant = isFeatured ? 'featured' : 'default';
+  const isFeatured = variant === 'featured' || variant === 'promo';
 
   // Card Widths
   // Default: Compact fixed width

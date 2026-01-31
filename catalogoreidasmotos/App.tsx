@@ -284,6 +284,7 @@ const App: React.FC = () => {
                 onInterest={handleInterest}
                 onViewDetails={handleViewDetails}
                 imageFit={settings.cardImageFit}
+                variant="default"
               />
             </>
           )}
