@@ -125,9 +125,15 @@ const App: React.FC = () => {
   // Ultimos Lançamentos (INCLUI VENDIDOS com badge)
   // O user pediu para aparecer no carrossel de ultimos lançamentos
   const ultimosLancamentos = useMemo(() => {
-    // Pegar todos que passarem no filtro e ordenar por data criaçao (já vem do banco assim)
-    // Apenas limitar a 10
-    return filteredVehicles.slice(0, 10);
+    // Pegar todos que passarem no filtro e ordenar por data mais recente de atividade (criação OU venda)
+    // Isso faz com que veículos recém-vendidos subam para o topo também
+    return [...filteredVehicles]
+      .sort((a, b) => {
+        const dateA = a.soldAt ? new Date(a.soldAt).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+        const dateB = b.soldAt ? new Date(b.soldAt).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+        return dateB - dateA;
+      })
+      .slice(0, 10);
   }, [filteredVehicles]);
 
 
