@@ -274,6 +274,12 @@ const App: React.FC = () => {
           {(motosVendidas.length > 0) && (
             <>
               <div className="w-full h-px bg-white/10 my-12 shadow-[0_0_30px_rgba(37,211,102,0.3)]"></div>
+              {/* DEBUG: Temporarily show sold count */}
+              <div className="text-center text-red-500 font-bold">
+                DEBUG: Sold Vehicles Count: {motosVendidas.length}
+                <br />
+                Top Vehicle: {motosVendidas[0]?.name} - SoldAt: {motosVendidas[0]?.soldAt}
+              </div>
               <StockCarousel
                 title="Galeria de Entregas (Vendidos Recentemente)"
                 vehicles={motosVendidas}
