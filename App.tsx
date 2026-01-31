@@ -270,6 +270,23 @@ const App: React.FC = () => {
             />
           )}
 
+
+          {/* SEPARATOR */}
+          {(carrosEstoque.length > 0) && (
+            <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(255,215,0,0.3)]"></div>
+          )}
+
+          {/* ESTOQUE DE CARROS (Grid) */}
+          {(carrosEstoque.length > 0) && (filter === 'TUDO' || filter === 'CARROS') && (
+            <StockGrid
+              title="Estoque de Carros"
+              vehicles={carrosEstoque}
+              onInterest={handleInterest}
+              onViewDetails={handleViewDetails}
+              imageFit={settings.cardImageFit}
+            />
+          )}
+
           {/* SEÇÃO DE VENDIDOS (NOVA) - AGORA VISÍVEL EM TODAS AS ABAS E ORDENADA POR DATA DA VENDA */}
           {(motosVendidas.length > 0) && (
             <>
