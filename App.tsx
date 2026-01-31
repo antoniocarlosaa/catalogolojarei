@@ -49,7 +49,6 @@ const App: React.FC = () => {
   }, [vehicles]);
 
   useEffect(() => {
-    console.log("🚀 VERSION: SOLD_FEATURES_UPDATE_V3 (Final)"); // Marcador de versão para debug
     const loadData = async () => {
       try {
         // Limpeza de veículos antigos ao iniciar
@@ -201,9 +200,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans relative">
-      <div className="absolute top-0 right-0 p-2 text-[10px] text-blue-500 font-mono z-[9999] pointer-events-none opacity-90 bg-black/90 font-bold border-b border-l border-blue-500 rounded-bl-xl shadow-lg shadow-blue-500/20">
-        V3.2 ONLINE (BLUE)
-      </div>
       <Header
         filter={filter}
         setFilter={setFilter}
