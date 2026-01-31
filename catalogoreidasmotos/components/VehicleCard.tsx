@@ -201,15 +201,24 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
 
             <div className="mt-3 pt-3 border-t border-white/5 flex gap-2">
               {/* WhatsApp */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onInterest(vehicle);
-                }}
-                className="flex-1 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold transition-all rounded-full flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(37,211,102,0.39)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.23)] hover:-translate-y-0.5 active:scale-95"
-              >
-                <span className="text-xs font-bold tracking-wide uppercase">WhatsApp</span>
-              </button>
+              {vehicle.isSold ? (
+                <button
+                  disabled
+                  className="flex-1 py-2 bg-white/10 text-white/50 font-bold rounded-full flex items-center justify-center gap-2 cursor-not-allowed border border-white/5"
+                >
+                  <span className="text-xs font-bold tracking-wide uppercase">VENDIDO</span>
+                </button>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onInterest(vehicle);
+                  }}
+                  className="flex-1 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold transition-all rounded-full flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(37,211,102,0.39)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.23)] hover:-translate-y-0.5 active:scale-95"
+                >
+                  <span className="text-xs font-bold tracking-wide uppercase">WhatsApp</span>
+                </button>
+              )}
 
               {/* Share Button */}
               <button
