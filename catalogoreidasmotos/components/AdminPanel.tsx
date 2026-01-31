@@ -426,8 +426,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/95 backdrop-blur-md">
-      <div className="w-full max-w-5xl bg-surface border border-white/10 p-6 sm:p-8 rounded-[2rem] shadow-2xl max-h-[90vh] flex flex-col relative overflow-hidden">
+    <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md">
+      <div className="w-full h-full bg-surface p-6 sm:p-8 flex flex-col relative overflow-hidden">
         <div className="flex justify-between items-center mb-6 shrink-0">
           <div>
             <h2 className="font-heading text-gold text-2xl sm:text-3xl tracking-wider leading-none uppercase">Painel ADM</h2>
