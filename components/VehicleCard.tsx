@@ -204,7 +204,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
               {vehicle.isSold ? (
                 <button
                   disabled
-                  className="flex-1 py-2 bg-white/10 text-white/50 font-bold rounded-full flex items-center justify-center gap-2 cursor-not-allowed border border-white/5"
+                  className="flex-1 py-2 bg-red-500/20 text-red-500 font-bold rounded-full flex items-center justify-center gap-2 cursor-not-allowed border border-red-500/20"
                 >
                   <span className="text-xs font-bold tracking-wide uppercase">VENDIDO</span>
                 </button>
