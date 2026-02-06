@@ -60,7 +60,6 @@ const App: React.FC = () => {
       try {
         // Limpeza de veículos antigos ao iniciar
         await db.cleanupOldSoldVehicles();
-        console.log('Limpeza de veículos antigos efetuada.');
 
         const [vData, sData, vCount] = await Promise.all([
           db.getAllVehicles(),
@@ -71,7 +70,7 @@ const App: React.FC = () => {
         setSettings(sData);
         setVisitCount(vCount);
 
-        // Show Promo logic removed (handled in JSX now)
+        console.log("🛠️ SETTINGS LOADED:", sData); // Debug settings
       } catch (err) {
         console.error("Erro ao conectar ao banco:", err);
       } finally {
@@ -222,6 +221,7 @@ const App: React.FC = () => {
         filter={filter}
         setFilter={setFilter}
         onAdminClick={handleAdminClick}
+        onNewsletterClick={() => setShowNewsletter(true)}
       />
 
       <main className="flex-1 w-full pb-24">
@@ -304,6 +304,16 @@ const App: React.FC = () => {
           )}
 
         </div>
+
+        {/* PROMO POPUP - Renderizado aqui para garantir visibilidade */}
+        {!isPromoDismissed && settings.promoActive && (
+          <PromoPopup
+            imageUrl={settings.promoImageUrl || ''}
+            link={settings.promoLink}
+            text={settings.promoText}
+            onClose={() => setIsPromoDismissed(true)}
+          />
+        )}
       </main>
 
       {/* Footer Discreto com Contador */}
@@ -314,10 +324,6 @@ const App: React.FC = () => {
             <span className="material-symbols-outlined text-xs">visibility</span>
             <span>{visitCount.toLocaleString('pt-BR')} Visitas</span>
           </div>
-          <button onClick={() => setShowNewsletter(true)} className="flex items-center gap-2 px-3 py-1 rounded-full bg-gold/10 hover:bg-gold/20 text-gold transition-colors text-[10px] font-bold uppercase tracking-widest mt-2">
-            <span className="material-symbols-outlined text-xs">campaign</span>
-            <span>Receber Novidades</span>
-          </button>
         </div>
       </footer>
 

@@ -5,9 +5,10 @@ interface HeaderProps {
     filter: CategoryFilter;
     setFilter: (filter: CategoryFilter) => void;
     onAdminClick: () => void;
+    onNewsletterClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick }) => {
+const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick, onNewsletterClick }) => {
     const [isScrolled, setIsScrolled] = useState(false);
 
     useEffect(() => {
@@ -64,10 +65,25 @@ const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick }) => {
                             {cat}
                         </button>
                     ))}
+                    <button
+                        onClick={onNewsletterClick}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 hover:bg-gold/20 text-gold transition-colors text-xs font-bold uppercase tracking-widest border border-gold/20"
+                    >
+                        <span className="material-symbols-outlined text-sm">campaign</span>
+                        <span>Novidades</span>
+                    </button>
                 </nav>
 
                 {/* MOBILE MENU & ADMIN */}
                 <div className="flex items-center gap-4">
+                    <button
+                        onClick={onNewsletterClick}
+                        className="md:hidden w-10 h-10 flex items-center justify-center text-gold hover:text-white transition-colors rounded-full hover:bg-white/10"
+                        title="Novidades"
+                    >
+                        <span className="material-symbols-outlined">campaign</span>
+                    </button>
+
                     <button
                         onClick={onAdminClick}
                         className="w-10 h-10 flex items-center justify-center text-white/80 hover:text-gold transition-colors rounded-full hover:bg-white/10"
@@ -75,8 +91,6 @@ const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick }) => {
                     >
                         <span className="material-symbols-outlined">settings</span>
                     </button>
-
-                    {/* Mobile Menu Toggle could go here (simplified for now to rely on layout) */}
                 </div>
             </div>
 
