@@ -69,8 +69,6 @@ const App: React.FC = () => {
         setVehicles(vData);
         setSettings(sData);
         setVisitCount(vCount);
-
-        console.log("🛠️ SETTINGS LOADED:", sData); // Debug settings
       } catch (err) {
         console.error("Erro ao conectar ao banco:", err);
       } finally {
