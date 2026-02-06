@@ -54,8 +54,13 @@ const App: React.FC = () => {
   }, [vehicles]);
 
   useEffect(() => {
+    console.log("🚀 VERSION: SOLD_FEATURES_UPDATE_V3 (Final)"); // Marcador de versão para debug
     const loadData = async () => {
       try {
+        // Limpeza de veículos antigos ao iniciar
+        await db.cleanupOldSoldVehicles();
+        console.log('Limpeza de veículos antigos efetuada.');
+
         const [vData, sData, vCount] = await Promise.all([
           db.getAllVehicles(),
           db.getSettings(),
@@ -100,11 +105,44 @@ const App: React.FC = () => {
     });
   }, [vehicles, filter, search]);
 
+  // Filtros Avançados
   const destaques = useMemo(() => filteredVehicles.filter(v => v.isFeatured && !v.isSold), [filteredVehicles]);
   const promoSemana = useMemo(() => filteredVehicles.filter(v => v.isPromoSemana && !v.isSold && !v.isFeatured), [filteredVehicles]);
-  // CORREÇÃO: Veículos continuam no estoque mesmo se forem destaque ou promo
+
+  // Estoque Ativo (não vendidos)
   const motosEstoque = useMemo(() => filteredVehicles.filter(v => v.type === VehicleType.MOTO && !v.isSold), [filteredVehicles]);
   const carrosEstoque = useMemo(() => filteredVehicles.filter(v => v.type === VehicleType.CARRO && !v.isSold), [filteredVehicles]);
+
+  // Veículos Vendidos (recente) - Ordenar pela data da venda (soldAt) se existir, ou fallback para created_at
+  const motosVendidas = useMemo(() => {
+    return vehicles
+      .filter(v => v.isSold)
+      .sort((a, b) => {
+        // Se ambos tiverem soldAt, ordena pelo mais recente
+        if (a.soldAt && b.soldAt) return new Date(b.soldAt).getTime() - new Date(a.soldAt).getTime();
+        // Se um tem soldAt e outro não, o que tem vem primeiro
+        if (a.soldAt) return -1;
+        if (b.soldAt) return 1;
+        // Se nenhum tem (fallback antigo), mantém ordem original (created_at desc)
+        return 0;
+      })
+      .slice(0, 10);
+  }, [vehicles]);
+
+  // Ultimos Lançamentos (INCLUI VENDIDOS com badge)
+  // O user pediu para aparecer no carrossel de ultimos lançamentos
+  const ultimosLancamentos = useMemo(() => {
+    // Pegar todos que passarem no filtro e ordenar por data mais recente de atividade (criação OU venda)
+    // Isso faz com que veículos recém-vendidos subam para o topo também
+    return [...filteredVehicles]
+      .sort((a, b) => {
+        const dateA = a.soldAt ? new Date(a.soldAt).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+        const dateB = b.soldAt ? new Date(b.soldAt).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+        return dateB - dateA;
+      })
+      .slice(0, 10);
+  }, [filteredVehicles]);
+
 
   const handleInterest = (vehicle: Vehicle) => {
     // Verificar se existem números ativos antes de abrir modal
@@ -222,11 +260,11 @@ const App: React.FC = () => {
             <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(255,215,0,0.3)]"></div>
           )}
 
-          {/* ÚLTIMOS LANÇAMENTOS (Carousel Mixed) */}
-          {(filteredVehicles.length > 0) && (filter === 'TUDO' || filter === 'MOTOS' || filter === 'CARROS') && (
+          {/* ÚLTIMOS LANÇAMENTOS (Carousel Mixed - AGORA INCLUI VENDIDOS) */}
+          {(ultimosLancamentos.length > 0) && (filter === 'TUDO' || filter === 'MOTOS' || filter === 'CARROS') && (
             <StockCarousel
               title="Últimos Lançamentos"
-              vehicles={filteredVehicles.filter(v => !v.isSold).slice(0, 10)}
+              vehicles={ultimosLancamentos}
               onInterest={handleInterest}
               onViewDetails={handleViewDetails}
               imageFit={settings.cardImageFit}
@@ -249,20 +287,19 @@ const App: React.FC = () => {
             />
           )}
 
-          {/* SEPARATOR */}
-          {(motosEstoque.length > 0) && (carrosEstoque.length > 0) && (
-            <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(255,215,0,0.3)]"></div>
-          )}
-
-          {/* CARROS GRID */}
-          {(carrosEstoque.length > 0) && (filter === 'TUDO' || filter === 'CARROS') && (
-            <StockGrid
-              title="Carros em Estoque"
-              vehicles={carrosEstoque.slice(0, 12)}
-              onInterest={handleInterest}
-              onViewDetails={handleViewDetails}
-              imageFit={settings.cardImageFit}
-            />
+          {/* SEÇÃO DE VENDIDOS (NOVA) - AGORA VISÍVEL EM TODAS AS ABAS E ORDENADA POR DATA DA VENDA */}
+          {(motosVendidas.length > 0) && (
+            <>
+              <div className="w-full h-px bg-white/10 my-12 shadow-[0_0_30px_rgba(37,211,102,0.3)]"></div>
+              <StockCarousel
+                title="Veículos Vendidos"
+                vehicles={motosVendidas}
+                onInterest={handleInterest}
+                onViewDetails={handleViewDetails}
+                imageFit={settings.cardImageFit}
+                variant="default"
+              />
+            </>
           )}
 
         </div>

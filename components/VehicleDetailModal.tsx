@@ -11,7 +11,16 @@ interface VehicleDetailModalProps {
 const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClose, onInterest }) => {
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-    const images = vehicle.images && vehicle.images.length > 0 ? vehicle.images : [vehicle.imageUrl];
+
+    // Logic to determine which images to show
+    let images: string[] = [];
+    if (vehicle.isSold && vehicle.salesPhotoUrl) {
+        // If sold and has sales photo: Show Sales Photo + Original Cover Photo (Exactly 2 photos)
+        images = [vehicle.salesPhotoUrl, vehicle.imageUrl];
+    } else {
+        // Default behavior: Show all images or just the cover if no gallery
+        images = vehicle.images && vehicle.images.length > 0 ? vehicle.images : [vehicle.imageUrl];
+    }
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
@@ -83,6 +92,14 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                 {/* Detalhes - Direita (Mobile: Baixo) */}
                 <div className="lg:w-2/5 p-8 lg:p-12 overflow-y-auto flex flex-col bg-surface">
                     <div className="mb-8">
+                        {/* Sold Banner */}
+                        {vehicle.isSold && (
+                            <div className="w-full bg-red-600/20 border border-red-500/50 rounded-xl p-4 mb-6 flex flex-col items-center justify-center text-center animate-pulse">
+                                <span className="text-red-500 font-heading text-2xl uppercase tracking-widest font-bold">VENDIDO</span>
+                                <span className="text-red-400/80 text-[10px] uppercase tracking-wide font-bold mt-1">Este veículo já foi entregue</span>
+                            </div>
+                        )}
+
                         <div className="flex items-center gap-3 mb-4">
                             {vehicle.isFeatured && <span className="px-3 py-1 bg-gold text-black text-[10px] font-bold uppercase tracking-widest rounded-full">Destaque</span>}
                             {(vehicle.isPromoSemana || vehicle.isPromoMes) && <span className="px-3 py-1 bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full">Promoção</span>}
@@ -164,10 +181,11 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                     </div>
 
                     <button
-                        onClick={() => onInterest(vehicle)}
-                        className="w-full py-2 bg-[#25D366] hover:bg-[#128C7E] text-white active:scale-95 transition-all rounded-xl flex items-center justify-center gap-3 group shadow-[0_0_20px_rgba(37,211,102,0.3)] hover:shadow-[0_0_30px_rgba(37,211,102,0.5)] animate-pulse hover:animate-none"
+                        onClick={() => !vehicle.isSold && onInterest(vehicle)}
+                        disabled={vehicle.isSold}
+                        className={`w-full py-2 ${vehicle.isSold ? 'bg-red-900/50 cursor-not-allowed opacity-50' : 'bg-[#25D366] hover:bg-[#128C7E] animate-pulse hover:animate-none shadow-[0_0_20px_rgba(37,211,102,0.3)] hover:shadow-[0_0_30px_rgba(37,211,102,0.5)]'} text-white active:scale-95 transition-all rounded-xl flex items-center justify-center gap-3 group`}
                     >
-                        <span className="text-base font-bold uppercase tracking-wider">Whatsapp</span>
+                        <span className="text-base font-bold uppercase tracking-wider">{vehicle.isSold ? 'Veículo Indisponível' : 'Whatsapp'}</span>
                     </button>
                 </div>
             </div>
