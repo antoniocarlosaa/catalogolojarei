@@ -212,9 +212,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans relative">
-      <div className="bg-red-600 text-white text-center font-bold p-2 z-[99999] sticky top-0">
-        VERSÃO DE DEBUG ATIVA - SE VOCÊ VÊ ISSO, O CÓDIGO ATUALIZOU (hora: {new Date().toLocaleTimeString()})
-      </div>
+
       <Header
         filter={filter}
         setFilter={setFilter}
