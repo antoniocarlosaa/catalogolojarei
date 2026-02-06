@@ -657,9 +657,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                             const file = e.target.files?.[0];
                             if (file) {
                               try {
-                                const url = await fileToBase64(file);
+                                const url = await uploadFileToStorage(file);
                                 setPromoImageUrl(url);
-                              } catch (err) { alert("Erro ao processar imagem."); }
+                              } catch (err) { alert("Erro ao enviar imagem (Storage): " + err); }
                             }
                           }}
                         />

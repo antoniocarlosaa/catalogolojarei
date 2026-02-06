@@ -29,6 +29,7 @@ const App: React.FC = () => {
   const [search, setSearch] = useState('');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showNewsletter, setShowNewsletter] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Promo State
@@ -313,6 +314,10 @@ const App: React.FC = () => {
             <span className="material-symbols-outlined text-xs">visibility</span>
             <span>{visitCount.toLocaleString('pt-BR')} Visitas</span>
           </div>
+          <button onClick={() => setShowNewsletter(true)} className="flex items-center gap-2 px-3 py-1 rounded-full bg-gold/10 hover:bg-gold/20 text-gold transition-colors text-[10px] font-bold uppercase tracking-widest mt-2">
+            <span className="material-symbols-outlined text-xs">campaign</span>
+            <span>Receber Novidades</span>
+          </button>
         </div>
       </footer>
 
@@ -372,6 +377,10 @@ const App: React.FC = () => {
         />
       )
       }
+
+      {showNewsletter && (
+        <NewsletterModal onClose={() => setShowNewsletter(false)} />
+      )}
 
       {/* Button Scroll Top */}
       {showScrollTop && (
