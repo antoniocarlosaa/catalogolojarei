@@ -21,54 +21,36 @@ export interface AuditLog {
 class LogService {
     // Registrar Visita (Público)
     async logVisit() {
-        // 0. Verificar se já visitou nesta sessão (Evita F5 duplicando)
-        if (typeof sessionStorage !== 'undefined') {
-            if (sessionStorage.getItem('visited_session')) {
-                return; // Já contou nesta sessão, ignora.
-            }
-            sessionStorage.setItem('visited_session', 'true');
-        }
-
         try {
-            let logData: AccessLog = {
-                ip: 'Anonimo',
-                location: 'Desconhecido',
-                device_info: '{}',
-                device_type: 'Desktop'
+            // 1. Obter dados do IP/Localização (API Gratuita)
+            const response = await fetch('https://ipapi.co/json/');
+            const data = await response.json();
+
+            const isMobile = typeof navigator !== 'undefined' ? /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) : false;
+
+            const logData: AccessLog = {
+                ip: data.ip || 'Desconhecido',
+                location: `${data.city || ''}, ${data.region_code || ''} - ${data.country_name || ''}`,
+                // Salvando um JSON completo no campo de texto para não precisar alterar o banco agora
+                device_info: JSON.stringify({
+                    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
+                    platform: typeof navigator !== 'undefined' ? navigator.platform : 'Unknown',
+                    screen: typeof window !== 'undefined' ? `${window.screen.width}x${window.screen.height}` : 'Unknown',
+                    language: typeof navigator !== 'undefined' ? navigator.language : 'Unknown',
+                    isp: data.org || data.asn || 'Desconhecido',
+                    timezone: data.timezone,
+                    lat_long: `${data.latitude}, ${data.longitude}`,
+                    connection: (typeof navigator !== 'undefined' && (navigator as any).connection) ? (navigator as any).connection.effectiveType : 'unknown'
+                }),
+                device_type: isMobile ? 'Mobile' : 'Desktop'
             };
 
-            // 1. Tentar obter dados do IP (Pode falhar por AdBlock)
-            try {
-                const response = await fetch('https://ipapi.co/json/');
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    const isMobile = typeof navigator !== 'undefined' ? /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) : false;
-
-                    logData = {
-                        ip: data.ip || 'Anonimo',
-                        location: `${data.city || ''}, ${data.region_code || ''} - ${data.country_name || ''}`,
-                        device_info: JSON.stringify({
-                            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
-                            screen: typeof window !== 'undefined' ? `${window.screen.width}x${window.screen.height}` : 'Unknown',
-                            type: isMobile ? 'Mobile' : 'Desktop'
-                        }),
-                        device_type: isMobile ? 'Mobile' : 'Desktop'
-                    };
-                }
-            } catch (err) {
-                console.log('API de IP bloqueada ou falhou, registrando visita anônima.');
-            }
-
-            // 2. Gravar no Supabase (Silent)
-            const { error } = await supabase.from('access_logs').insert([logData]);
-            
-            if (error) {
-                console.error('Erro Supabase ao logar visita:', error.message);
-            }
+            // 2. Gravar no Supabase (Silent - não deve travar o site se falhar)
+            await supabase.from('access_logs').insert([logData]);
 
         } catch (error) {
-            console.warn('Falha geral ao registrar log de visita:', error);
+            console.warn('Falha ao registrar log de visita (Silent):', error);
+            // Não alertamos o usuário para não atrapalhar a experiência
         }
     }
 

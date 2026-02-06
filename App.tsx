@@ -12,6 +12,8 @@ import HeroCard from './components/HeroCard';
 import ViewMoreCard from './components/ViewMoreCard';
 import AdminPanel from './components/AdminPanel';
 import LoginModal from './components/LoginModal';
+import PromoPopup from './components/PromoPopup';
+import NewsletterModal from './components/NewsletterModal';
 import { db } from './services/VehicleService';
 import { useAuth } from './contexts/AuthContext';
 import { logger } from './services/LogService';
@@ -28,6 +30,9 @@ const App: React.FC = () => {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Promo State
+  const [isPromoDismissed, setIsPromoDismissed] = useState(false);
 
   // WhatsApp Selector State
   const [showWhatsappModal, setShowWhatsappModal] = useState(false);
@@ -59,6 +64,8 @@ const App: React.FC = () => {
         setVehicles(vData);
         setSettings(sData);
         setVisitCount(vCount);
+
+        // Show Promo logic removed (handled in JSX now)
       } catch (err) {
         console.error("Erro ao conectar ao banco:", err);
       } finally {
@@ -169,6 +176,9 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans relative">
+      <div className="bg-red-600 text-white text-center font-bold p-2 z-[99999] sticky top-0">
+        VERSÃO DE DEBUG ATIVA - SE VOCÊ VÊ ISSO, O CÓDIGO ATUALIZOU (hora: {new Date().toLocaleTimeString()})
+      </div>
       <Header
         filter={filter}
         setFilter={setFilter}
@@ -277,6 +287,10 @@ const App: React.FC = () => {
           currentBackgroundImageUrl={settings.backgroundImageUrl}
           currentBackgroundPosition={settings.backgroundPosition}
           currentCardImageFit={settings.cardImageFit}
+          currentPromoActive={settings.promoActive}
+          currentPromoImageUrl={settings.promoImageUrl}
+          currentPromoLink={settings.promoLink}
+          currentPromoText={settings.promoText}
           vehicles={vehicles}
           onSaveSettings={async (newSettings) => {
             setSettings(newSettings);
@@ -292,6 +306,9 @@ const App: React.FC = () => {
           onSaveBackgroundImageUrl={() => { }}
           onSaveBackgroundPosition={() => { }}
           onSaveCardImageFit={() => { }}
+          onSavePromoActive={() => { }}
+          onSavePromoImage={() => { }}
+          onSavePromoLink={() => { }}
           onUpdateVehicle={onUpdate}
           onDeleteVehicle={onDelete}
           onUpload={onUpload}

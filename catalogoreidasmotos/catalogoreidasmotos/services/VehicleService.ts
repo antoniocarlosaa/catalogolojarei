@@ -82,7 +82,46 @@ class VehicleService {
       hasRevisoes: dbVehicle.has_revisoes || false,
       imagePosition: dbVehicle.image_position,
       plate_last3: dbVehicle.plate_last3,
+      salesPhotoUrl: dbVehicle.sales_photo_url,
+      soldAt: dbVehicle.sold_at,
     };
+  }
+
+  // Falback para configurações
+  // ... (rest of code)
+
+  // Clean up old sold vehicles (> 15 days)
+  async cleanupOldSoldVehicles(): Promise<void> {
+    try {
+      const { data: soldVehicles, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('is_sold', true);
+
+      if (error || !soldVehicles) return;
+
+      const now = new Date();
+      const fifteenDaysAgo = new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000));
+
+      const toDelete = soldVehicles.filter(v => {
+        if (!v.sold_at) return false; // Se não tem data, não deleta automaticamente (segurança)
+        const soldDate = new Date(v.sold_at);
+        return soldDate < fifteenDaysAgo;
+      });
+
+      if (toDelete.length === 0) return;
+
+      console.log(`🧹 Limpando ${toDelete.length} veículos vendidos há mais de 15 dias...`);
+
+      for (const v of toDelete) {
+        await this.deleteVehicle(v.id);
+        // Tentar limpar imagens também seria ideal, mas arriscado sem bucket management complexo. 
+        // O Supabase não deleta arquivos automaticamente ao deletar registro.
+        // Por enquanto, apenas removemos do banco/vitrine.
+      }
+    } catch (err) {
+      console.error("Erro na limpeza automática:", err);
+    }
   }
 
   // Salvar novo veículo
@@ -126,6 +165,8 @@ class VehicleService {
           has_spare_key: vehicle.hasSpareKey || false,
           has_revisoes: vehicle.hasRevisoes || false,
           plate_last3: vehicle.plate_last3,
+          sales_photo_url: vehicle.salesPhotoUrl,
+          sold_at: vehicle.soldAt,
         }]);
 
       if (error) {
@@ -162,8 +203,7 @@ class VehicleService {
       if (updates.color !== undefined) updateData.color = updates.color;
       if (updates.km !== undefined) updateData.km = updates.km;
       if (updates.year !== undefined) updateData.year = updates.year;
-      // Add other missing fields if crucial, but plate_last3 was the request.
-      // Actually checking AdminPanel logic, it sends most fields. Let's make sure update handles ALL fields sent by Full Edit.
+
       if (updates.type !== undefined) updateData.type = updates.type;
       if (updates.imageUrl !== undefined) updateData.image_url = updates.imageUrl;
       if (updates.images !== undefined) updateData.images = updates.images;
@@ -183,6 +223,8 @@ class VehicleService {
       if (updates.hasRevisoes !== undefined) updateData.has_revisoes = updates.hasRevisoes;
       if (updates.imagePosition !== undefined) updateData.image_position = updates.imagePosition;
 
+      if (updates.salesPhotoUrl !== undefined) updateData.sales_photo_url = updates.salesPhotoUrl;
+      if (updates.soldAt !== undefined) updateData.sold_at = updates.soldAt;
 
       const { error } = await supabase
         .from('vehicles')
@@ -242,10 +284,6 @@ class VehicleService {
         backgroundImageUrl: data?.background_image_url || local.backgroundImageUrl || '',
         backgroundPosition: data?.background_position || local.backgroundPosition || '50% 50%',
         cardImageFit: data?.card_image_fit || local.cardImageFit || 'cover',
-        promoActive: data?.promo_active ?? local.promoActive ?? false,
-        promoImageUrl: data?.promo_image_url || local.promoImageUrl || '',
-        promoLink: data?.promo_link || local.promoLink || '',
-        promoText: data?.promo_text || local.promoText || '',
       };
     } catch (error) {
       console.error('Erro ao conectar com Supabase, usando configurações locais:', error);
@@ -286,10 +324,6 @@ class VehicleService {
             background_image_url: settings.backgroundImageUrl,
             background_position: settings.backgroundPosition,
             card_image_fit: settings.cardImageFit,
-            promo_active: settings.promoActive,
-            promo_image_url: settings.promoImageUrl,
-            promo_link: settings.promoLink,
-            promo_text: settings.promoText,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existing.id)
@@ -309,10 +343,6 @@ class VehicleService {
             background_image_url: settings.backgroundImageUrl,
             background_position: settings.backgroundPosition,
             card_image_fit: settings.cardImageFit,
-            promo_active: settings.promoActive,
-            promo_image_url: settings.promoImageUrl,
-            promo_link: settings.promoLink,
-            promo_text: settings.promoText,
           }]);
 
         if (error) throw error;
@@ -326,3 +356,4 @@ class VehicleService {
 }
 
 export const db = new VehicleService();
+

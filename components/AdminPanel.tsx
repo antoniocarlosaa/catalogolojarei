@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Vehicle, VehicleType } from '../types';
+import { Vehicle, VehicleType, AppSettings } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { logger, AccessLog, AuditLog } from '../services/LogService';
 import { supabase } from '../services/supabase';
@@ -11,6 +11,11 @@ interface AdminPanelProps {
   currentBackgroundImageUrl?: string;
   currentBackgroundPosition?: string;
   currentCardImageFit?: 'cover' | 'contain';
+  // Promo
+  currentPromoActive?: boolean;
+  currentPromoImageUrl?: string;
+  currentPromoLink?: string;
+  currentPromoText?: string;
   vehicles: Vehicle[];
   onSaveSettings: (settings: AppSettings) => Promise<void>;
   onSaveNumbers: (numbers: string[]) => void;
@@ -18,6 +23,10 @@ interface AdminPanelProps {
   onSaveBackgroundImageUrl: (url: string) => void;
   onSaveBackgroundPosition: (pos: string) => void;
   onSaveCardImageFit: (fit: 'cover' | 'contain') => void;
+  // Promo
+  onSavePromoActive: (active: boolean) => void;
+  onSavePromoImage: (url: string) => void;
+  onSavePromoLink: (url: string) => void;
   onUpdateVehicle: (id: string, updates: Partial<Vehicle>) => void;
   onDeleteVehicle: (id: string) => void;
   onUpload: (vehicle: Vehicle) => Promise<void>;
@@ -30,6 +39,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   currentBackgroundImageUrl,
   currentBackgroundPosition,
   currentCardImageFit,
+  // Promo Props
+  currentPromoActive,
+  currentPromoImageUrl,
+  currentPromoLink,
+  currentPromoText,
   vehicles,
   onSaveSettings,
   onSaveNumbers,
@@ -37,13 +51,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   onSaveBackgroundImageUrl,
   onSaveBackgroundPosition,
   onSaveCardImageFit,
+  onSavePromoActive,
+  onSavePromoImage,
+  onSavePromoLink,
   onUpdateVehicle,
   onDeleteVehicle,
   onUpload,
   onClose
 }) => {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'inventory' | 'upload' | 'sold' | 'logs'>('whatsapp');
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'inventory' | 'upload' | 'sold' | 'logs' | 'subscribers'>('whatsapp');
   const [numbers, setNumbers] = useState<string[]>(
     Array(10).fill('').map((_, i) => currentNumbers[i] || '')
   );
@@ -51,6 +68,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [backgroundImageUrl, setBackgroundImageUrl] = useState(currentBackgroundImageUrl || '');
   const [backgroundPos, setBackgroundPos] = useState(currentBackgroundPosition || '50% 50%');
   const [cardImageFit, setCardImageFit] = useState<'cover' | 'contain'>(currentCardImageFit || 'cover');
+
+  // Promo State
+  const [promoActive, setPromoActive] = useState(currentPromoActive || false);
+  const [promoImageUrl, setPromoImageUrl] = useState(currentPromoImageUrl || '');
+  const [promoLink, setPromoLink] = useState(currentPromoLink || '');
+  const [promoText, setPromoText] = useState(currentPromoText || '');
+  const [subscribers, setSubscribers] = useState<{ email: string; name?: string; created_at: string }[]>([]);
+
+  useEffect(() => {
+    if (activeTab === 'subscribers') {
+      supabase.from('newsletter_subscriptions').select('*').order('created_at', { ascending: false })
+        .then(({ data }) => setSubscribers(data || []));
+    }
+  }, [activeTab]);
+
   const [confirmSoldId, setConfirmSoldId] = useState<string | null>(null);
 
   // States para Logs
@@ -443,6 +475,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             { id: 'inventory', icon: 'garage_home', label: 'Estoque' },
             { id: 'upload', icon: 'add_circle', label: 'Novo Veículo' },
             { id: 'sold', icon: 'sell', label: 'Vendidos' },
+            { id: 'subscribers', icon: 'mail', label: 'Assinantes' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -596,644 +629,765 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-lg">call</span> WhatsApps de Atendimento
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {numbers.map((n, i) => (
-                      <div key={i} className="flex flex-col gap-1">
-                        <label className="text-[9px] font-bold text-white/50 uppercase tracking-widest ml-1">Atendente {i + 1}</label>
-                        <div className="relative flex items-center gap-2">
-                          {/* Toggle Ativo/Inativo */}
-                          <div className="flex flex-col items-center">
-                            <button
-                              onClick={() => {
-                                const next = [...numbers];
-                                const current = next[i];
-                                if (current.startsWith('OFF:')) {
-                                  next[i] = current.replace('OFF:', '');
-                                } else {
-                                  next[i] = `OFF:${current}`;
-                                }
-                                setNumbers(next);
-                              }}
-                              className={`w-10 h-6 rounded-full transition-colors flex items-center px-1 ${!n.startsWith('OFF:') ? 'bg-green-500/20' : 'bg-red-500/20'}`}
-                              title={!n.startsWith('OFF:') ? 'Número Ativo' : 'Número Inativo'}
-                            >
-                              <div className={`w-4 h-4 rounded-full shadow-md transition-transform ${!n.startsWith('OFF:') ? 'bg-green-500 translate-x-4' : 'bg-red-500 translate-x-0'}`} />
-                            </button>
-                            <span className="text-[8px] mt-1 font-bold text-white/30 uppercase">{!n.startsWith('OFF:') ? 'Ativo' : 'Inativo'}</span>
-                          </div>
+              </div>
+            </div>
 
-                          <div className="relative flex-1">
-                            <input
-                              value={n.replace('OFF:', '')}
-                              onChange={(e) => {
-                                const next = [...numbers];
-                                const isOff = next[i].startsWith('OFF:');
-                                const cleanVal = e.target.value.replace(/\D/g, '');
-                                next[i] = isOff ? `OFF:${cleanVal}` : cleanVal;
-                                setNumbers(next);
-                              }}
-                              className={`w-full bg-surface-light border text-white text-xs px-4 py-4 rounded-xl outline-none focus:border-gold ${n.replace('OFF:', '').length === 13 ? 'border-green-500/50' : 'border-white/5'} ${n.startsWith('OFF:') ? 'opacity-50' : ''}`}
-                              placeholder="Ex: 5598988887777"
-                              disabled={n.startsWith('OFF:')}
-                            />
-                            {n.replace('OFF:', '').length > 0 && (
-                              <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold ${n.replace('OFF:', '').length >= 12 ? 'text-green-500' : 'text-red-500'}`}>
-                                {n.replace('OFF:', '').length} dígitos
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                {/* PROMO POPUP SECTION */}
+          <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">campaign</span> Pop-up de Aviso / Promoção
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] text-white/50 uppercase font-bold">{promoActive ? 'Ativado' : 'Desativado'}</span>
+                <button
+                  onClick={() => setPromoActive(!promoActive)}
+                  className={`w-12 h-6 rounded-full transition-colors flex items-center px-1 ${promoActive ? 'bg-gold' : 'bg-white/10'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${promoActive ? 'translate-x-6' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            </div>
+
+            {promoActive && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+
+                {/* Image Upload */}
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="promo-upload"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        try {
+                          // Reuse existing fileToBase64 or simple object URL if just for layout (but we need base64/url for persistence)
+                          const base64 = await fileToBase64(file);
+                          setPromoImageUrl(base64);
+                        } catch (err) { alert("Erro na imagem"); }
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  {!promoImageUrl ? (
+                    <label htmlFor="promo-upload" className="w-full flex flex-col items-center justify-center gap-2 h-32 bg-black/20 border-2 border-dashed border-white/10 rounded-xl cursor-pointer hover:border-gold/50 hover:text-gold text-white/40 transition-all">
+                      <span className="material-symbols-outlined text-2xl">add_photo_alternate</span>
+                      <span className="text-[10px] uppercase font-bold">Escolher Imagem do Pop-up</span>
+                    </label>
+                  ) : (
+                    <div className="relative w-full h-48 bg-black/50 rounded-xl overflow-hidden group border border-white/10">
+                      <img src={promoImageUrl} className="w-full h-full object-contain" />
+                      <button onClick={() => setPromoImageUrl('')} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full"><span className="material-symbols-outlined text-xs">close</span></button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Link Input */}
+                <div>
+                  <label className="text-[9px] text-white/50 uppercase font-bold tracking-widest mb-1 block">Link de Destino (Opcional)</label>
+                  <input
+                    value={promoLink}
+                    onChange={(e) => setPromoLink(e.target.value)}
+                    className="w-full bg-black/20 border border-white/10 text-white text-xs px-4 py-3 rounded-xl focus:border-gold outline-none"
+                    placeholder="Ex: https://wa.me/..."
+                  />
+                </div>
+
+                {/* Promo Text */}
+                <div>
+                  <label className="text-[9px] text-white/50 uppercase font-bold tracking-widest mb-1 block">Texto Promocional (Opcional)</label>
+                  <textarea
+                    value={promoText}
+                    onChange={(e) => setPromoText(e.target.value)}
+                    className="w-full bg-black/20 border border-white/10 text-white text-xs px-4 py-3 rounded-xl focus:border-gold outline-none min-h-[80px]"
+                    placeholder="Escreva uma mensagem..."
+                  />
                 </div>
               </div>
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">call</span> WhatsApps de Atendimento
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {numbers.map((n, i) => (
+                <div key={i} className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-white/50 uppercase tracking-widest ml-1">Atendente {i + 1}</label>
+                  <div className="relative flex items-center gap-2">
+                    {/* Toggle Ativo/Inativo */}
+                    <div className="flex flex-col items-center">
+                      <button
+                        onClick={() => {
+                          const next = [...numbers];
+                          const current = next[i];
+                          if (current.startsWith('OFF:')) {
+                            next[i] = current.replace('OFF:', '');
+                          } else {
+                            next[i] = `OFF:${current}`;
+                          }
+                          setNumbers(next);
+                        }}
+                        className={`w-10 h-6 rounded-full transition-colors flex items-center px-1 ${!n.startsWith('OFF:') ? 'bg-green-500/20' : 'bg-red-500/20'}`}
+                        title={!n.startsWith('OFF:') ? 'Número Ativo' : 'Número Inativo'}
+                      >
+                        <div className={`w-4 h-4 rounded-full shadow-md transition-transform ${!n.startsWith('OFF:') ? 'bg-green-500 translate-x-4' : 'bg-red-500 translate-x-0'}`} />
+                      </button>
+                      <span className="text-[8px] mt-1 font-bold text-white/30 uppercase">{!n.startsWith('OFF:') ? 'Ativo' : 'Inativo'}</span>
+                    </div>
+
+                    <div className="relative flex-1">
+                      <input
+                        value={n.replace('OFF:', '')}
+                        onChange={(e) => {
+                          const next = [...numbers];
+                          const isOff = next[i].startsWith('OFF:');
+                          const cleanVal = e.target.value.replace(/\D/g, '');
+                          next[i] = isOff ? `OFF:${cleanVal}` : cleanVal;
+                          setNumbers(next);
+                        }}
+                        className={`w-full bg-surface-light border text-white text-xs px-4 py-4 rounded-xl outline-none focus:border-gold ${n.replace('OFF:', '').length === 13 ? 'border-green-500/50' : 'border-white/5'} ${n.startsWith('OFF:') ? 'opacity-50' : ''}`}
+                        placeholder="Ex: 5598988887777"
+                        disabled={n.startsWith('OFF:')}
+                      />
+                      {n.replace('OFF:', '').length > 0 && (
+                        <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold ${n.replace('OFF:', '').length >= 12 ? 'text-green-500' : 'text-red-500'}`}>
+                          {n.replace('OFF:', '').length} dígitos
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={async () => {
+            try {
+              await onSaveSettings({
+                whatsappNumbers: numbers.filter(n => n.trim() !== ''),
+                googleMapsUrl: mapsUrl,
+                backgroundImageUrl: backgroundImageUrl,
+                backgroundPosition: backgroundPos,
+                cardImageFit: cardImageFit,
+                promoActive: promoActive,
+                promoImageUrl: promoImageUrl,
+                promoLink: promoLink,
+                promoText: promoText
+              });
+              alert('Configurações salvas com sucesso!');
+            } catch (error) {
+              console.error("Erro ao salvar:", error);
+              alert("Erro ao salvar configurações.");
+            }
+          }}
+          className="w-full py-5 bg-gold text-black font-heading text-[11px] tracking-[0.3em] rounded-full shadow-xl hover:brightness-110 active:scale-95 transition-all"
+        >
+          SALVAR TUDO
+        </button>
+      </div>
+          )}
+
+      {activeTab === 'subscribers' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-gold text-lg font-bold uppercase tracking-widest flex items-center gap-2">
+                <span className="material-symbols-outlined">mail</span> Assinantes ({subscribers.length})
+              </h3>
               <button
-                onClick={async () => {
-                  try {
-                    await onSaveSettings({
-                      whatsappNumbers: numbers.filter(n => n.trim() !== ''),
-                      googleMapsUrl: mapsUrl,
-                      backgroundImageUrl: backgroundImageUrl,
-                      backgroundPosition: backgroundPos,
-                      cardImageFit: cardImageFit
-                    });
-                    alert('Configurações salvas com sucesso!');
-                  } catch (error) {
-                    console.error("Erro ao salvar:", error);
-                    alert("Erro ao salvar configurações.");
-                  }
+                onClick={() => {
+                  const emails = subscribers.map(s => s.email).join(', ');
+                  navigator.clipboard.writeText(emails);
+                  alert('E-mails copiados para a área de transferência!');
                 }}
-                className="w-full py-5 bg-gold text-black font-heading text-[11px] tracking-[0.3em] rounded-full shadow-xl hover:brightness-110 active:scale-95 transition-all"
+                className="bg-gold text-black px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all"
               >
-                SALVAR TUDO
+                Copiar Todos
               </button>
             </div>
-          )}
 
-          {
-            activeTab === 'upload' && (
-              <form onSubmit={handleSaveVehicle} className="space-y-8 animate-in fade-in duration-300 pb-10">
-                <div className="flex items-center justify-between mb-4 px-1">
-                  <h3 className="text-gold text-sm font-bold uppercase tracking-widest">
-                    {fullEditingId ? '✏️ Editando Veículo' : '✨ Novo Cadastro'}
-                  </h3>
-                  {fullEditingId && (
-                    <button type="button" onClick={resetForm} className="text-xs text-red-400 hover:text-red-300 underline uppercase tracking-wider">
-                      Cancelar Edição
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex p-1.5 bg-white/5 rounded-full border border-white/5">
-                  <button type="button" onClick={() => setNewType(VehicleType.MOTO)} className={`flex-1 py-4 rounded-full flex items-center justify-center gap-3 transition-all ${newType === VehicleType.MOTO ? 'bg-gold text-black shadow-lg' : 'text-white/40 hover:text-white'}`}>
-                    <span className="material-symbols-outlined">motorcycle</span>
-                    <span className="text-[11px] font-bold uppercase tracking-widest">MOTO</span>
-                  </button>
-                  <button type="button" onClick={() => setNewType(VehicleType.CARRO)} className={`flex-1 py-4 rounded-full flex items-center justify-center gap-3 transition-all ${newType === VehicleType.CARRO ? 'bg-gold text-black shadow-lg' : 'text-white/40 hover:text-white'}`}>
-                    <span className="material-symbols-outlined">directions_car</span>
-                    <span className="text-[11px] font-bold uppercase tracking-widest">CARRO</span>
-                  </button>
-                </div>
-
-                {/* Checkbox 0 KM & Repasse */}
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex-1 flex items-center gap-3 p-4 bg-gold/10 border border-gold/20 rounded-2xl">
-                    <input
-                      type="checkbox"
-                      id="isZeroKm"
-                      checked={isZeroKm}
-                      onChange={(e) => {
-                        setIsZeroKm(e.target.checked);
-                        if (e.target.checked) setNewKM('0');
-                      }}
-                      className="w-5 h-5 rounded border-gold/30 text-gold focus:ring-gold"
-                    />
-                    <label htmlFor="isZeroKm" className="text-sm font-bold text-gold uppercase tracking-wider cursor-pointer">
-                      ✨ Veículo 0 KM
-                    </label>
-                  </div>
-
-                  <div className="flex-1 flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
-                    <input
-                      type="checkbox"
-                      id="isRepasse"
-                      checked={isRepasse}
-                      onChange={(e) => setIsRepasse(e.target.checked)}
-                      className="w-5 h-5 rounded border-red-500/30 text-red-500 focus:ring-red-500"
-                    />
-                    <label htmlFor="isRepasse" className="text-sm font-bold text-red-500 uppercase tracking-wider cursor-pointer">
-                      ⚠️ Repasse
-                    </label>
-                  </div>
-                </div>
-
-                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
-                  <div className="space-y-6">
+            <div className="space-y-2">
+              {subscribers.length === 0 ? (
+                <div className="text-white/30 text-center py-10 text-sm">Nenhum assinante encontrado.</div>
+              ) : (
+                subscribers.map((sub, i) => (
+                  <div key={i} className="bg-black/20 p-4 rounded-xl border border-white/5 flex items-center justify-between">
                     <div>
-                      <h4 className="text-[10px] text-gold font-bold uppercase tracking-widest mb-4">Fotos do Veículo (Máx 6)</h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-                        {currentImages.map((item, i) => (
-                          <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-black border border-white/10 group">
-                            <img src={item.url} className="w-full h-full object-cover" />
-                            <button type="button" onClick={() => removeMedia(i, 'image')} className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded-full"><span className="material-symbols-outlined text-[14px]">close</span></button>
-                            {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-gold/90 text-black text-[7px] font-bold text-center py-0.5 uppercase">Capa</div>}
-                          </div>
-                        ))}
-                        {currentImages.length < 6 && (
-                          <button type="button" disabled={isUploading} onClick={() => imageInputRef.current?.click()} className={`aspect-square bg-surface-light border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'text-white/20 hover:border-gold hover:text-gold'}`}>
-                            {isUploading ? <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">add_a_photo</span>}
-                          </button>
-                        )}
-                      </div>
-                      <input type="file" ref={imageInputRef} className="hidden" accept="image/*" multiple onChange={(e) => handleFileChange(e, 'image')} />
+                      <div className="text-white font-bold text-sm">{sub.email}</div>
+                      {sub.name && <div className="text-white/50 text-xs">{sub.name}</div>}
                     </div>
-
-                    {currentImages.length > 0 && (
-                      <div className="bg-white/5 p-4 rounded-xl border border-white/5 mb-6">
-                        <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-3 block">Ajustar Posição da Foto Principal (Capa)</label>
-                        <div className="flex gap-4 items-center">
-                          <div className="w-20 h-20 rounded-lg overflow-hidden relative border border-white/20">
-                            <img src={currentImages[0].url} className="w-full h-full object-cover" style={{ objectPosition: newImagePos }} />
-                          </div>
-                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <div className="flex justify-between mb-1">
-                                <span className="text-[8px] text-white/50 uppercase">Horizontal</span>
-                                <span className="text-[8px] text-white/50">{newImagePos.split(' ')[0]}</span>
-                              </div>
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={parseInt(newImagePos.split(' ')[0])}
-                                onChange={(e) => setNewImagePos(`${e.target.value}% ${newImagePos.split(' ')[1]}`)}
-                                className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                              />
-                            </div>
-                            <div>
-                              <div className="flex justify-between mb-1">
-                                <span className="text-[8px] text-white/50 uppercase">Vertical</span>
-                                <span className="text-[8px] text-white/50">{newImagePos.split(' ')[1]}</span>
-                              </div>
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={parseInt(newImagePos.split(' ')[1])}
-                                onChange={(e) => setNewImagePos(`${newImagePos.split(' ')[0]} ${e.target.value}%`)}
-                                className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <h4 className="text-[10px] text-gold font-bold uppercase tracking-widest mb-4">Vídeos (Opcional - Máx 3)</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {currentVideos.map((item, i) => (
-                          <div key={i} className="relative aspect-video rounded-xl overflow-hidden bg-black border border-white/10">
-                            <video src={item.url} className="w-full h-full object-cover" muted />
-                            <button type="button" onClick={() => removeMedia(i, 'video')} className="absolute top-2 right-2 bg-black/70 text-white p-1.5 rounded-full"><span className="material-symbols-outlined">close</span></button>
-                          </div>
-                        ))}
-                        {currentVideos.length < 3 && (
-                          <button type="button" disabled={isUploading} onClick={() => videoInputRef.current?.click()} className={`aspect-video bg-surface-light border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'text-white/20 hover:border-gold hover:text-gold'}`}>
-                            {isUploading ? <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">videocam</span>}
-                          </button>
-                        )}
-                      </div>
-                      <input type="file" ref={videoInputRef} className="hidden" accept="video/*" multiple onChange={(e) => handleFileChange(e, 'video')} />
+                    <div className="text-white/30 text-[10px]">
+                      {new Date(sub.created_at).toLocaleDateString('pt-BR')}
                     </div>
                   </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="md:col-span-2">
-                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Modelo Comercial</label>
-                      <input value={newName} onChange={e => setNewName(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none uppercase" placeholder="Ex: BMW S1000RR M PACK" />
-                    </div>
-                    <div>
-                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">KM Atual</label>
-                      <input value={newKM} onChange={e => setNewKM(e.target.value)} disabled={isZeroKm} className={`w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none ${isZeroKm ? 'opacity-50 cursor-not-allowed' : ''}`} placeholder={isZeroKm ? "0 KM" : "Ex: 500"} />
-                    </div>
-                    <div>
-                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Preço (R$)</label>
-                      <input
-                        value={newPrice}
-                        onChange={e => setNewPrice(formatCurrency(e.target.value))}
-                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none"
-                        placeholder="125.000"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Ano / Modelo</label>
-                      <input value={newYear} onChange={e => setNewYear(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="2024" />
-                    </div>
-                    <div>
-                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cor</label>
-                      <input value={newColor} onChange={e => setNewColor(e.target.value.toUpperCase())} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="Ex: PRETO" />
-                    </div>
-                    <div>
+      {
+        activeTab === 'upload' && (
+          <form onSubmit={handleSaveVehicle} className="space-y-8 animate-in fade-in duration-300 pb-10">
+            <div className="flex items-center justify-between mb-4 px-1">
+              <h3 className="text-gold text-sm font-bold uppercase tracking-widest">
+                {fullEditingId ? '✏️ Editando Veículo' : '✨ Novo Cadastro'}
+              </h3>
+              {fullEditingId && (
+                <button type="button" onClick={resetForm} className="text-xs text-red-400 hover:text-red-300 underline uppercase tracking-wider">
+                  Cancelar Edição
+                </button>
+              )}
+            </div>
 
-                      {newType === VehicleType.MOTO ? (
-                        <div>
-                          <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cilindradas (CC)</label>
-                          <input value={newDisplacement} onChange={e => setNewDisplacement(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="1000" />
-                        </div>
-                      ) : (
-                        <>
-                          <div>
-                            <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Câmbio</label>
-                            <select value={newTransmission} onChange={e => setNewTransmission(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none">
-                              <option value="Automático">Automático</option>
-                              <option value="Manual">Manual</option>
-                            </select>
-                          </div>
-                        </>
-                      )}
-                      <div>
-                        <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">PLACA (Final 3 Dígitos) *</label>
-                        <input
-                          value={newPlateLast3}
-                          onChange={(e) => setNewPlateLast3(e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 3).toUpperCase())}
-                          className={`w-full bg-surface-light border ${!newPlateLast3 ? 'border-red-500/30' : 'border-white/5'} text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none font-mono tracking-widest text-center uppercase`}
-                          placeholder="ABC"
-                        />
-                      </div>
-                    </div>
-                  </div>
+            <div className="flex p-1.5 bg-white/5 rounded-full border border-white/5">
+              <button type="button" onClick={() => setNewType(VehicleType.MOTO)} className={`flex-1 py-4 rounded-full flex items-center justify-center gap-3 transition-all ${newType === VehicleType.MOTO ? 'bg-gold text-black shadow-lg' : 'text-white/40 hover:text-white'}`}>
+                <span className="material-symbols-outlined">motorcycle</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest">MOTO</span>
+              </button>
+              <button type="button" onClick={() => setNewType(VehicleType.CARRO)} className={`flex-1 py-4 rounded-full flex items-center justify-center gap-3 transition-all ${newType === VehicleType.CARRO ? 'bg-gold text-black shadow-lg' : 'text-white/40 hover:text-white'}`}>
+                <span className="material-symbols-outlined">directions_car</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest">CARRO</span>
+              </button>
+            </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-white/5">
-                    {[
-                      { label: 'Único Dono', state: isSingleOwner, set: setIsSingleOwner, tooltip: 'Apenas um proprietário.' },
-                      { label: 'DUT', state: hasDut, set: setHasDut, tooltip: 'Documentação pronta.' },
-                      { label: 'Manual', state: hasManual, set: setHasManual, tooltip: 'Acompanha manual.' },
-                      { label: 'Chave Reserva', state: hasSpareKey, set: setHasSpareKey, tooltip: 'Possui chave reserva.' },
-                      { label: 'Promoção', state: isPromoSemana, set: setIsPromoSemana, tooltip: 'Marcar com tag de promoção.' },
-                      { label: 'Destaque', state: isFeatured, set: setIsFeatured, tooltip: 'Exibir no topo ou carrossel.' },
-                    ].map(item => (
-                      <div key={item.label} className="relative flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 cursor-pointer hover:border-gold/30 transition-all group/tooltip">
-                        <input type="checkbox" id={`check-${item.label}`} checked={item.state} onChange={e => item.set(e.target.checked)} className="accent-gold w-4 h-4 cursor-pointer" />
-                        <label htmlFor={`check-${item.label}`} className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer">
-                          <span className="text-[10px] text-white/60 uppercase font-bold tracking-widest truncate">{item.label}</span>
-                        </label>
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 p-4 bg-black/95 border border-gold/20 rounded-2xl text-[9px] text-white/70 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50">
-                          {item.tooltip}
-                        </div>
+            {/* Checkbox 0 KM & Repasse */}
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex-1 flex items-center gap-3 p-4 bg-gold/10 border border-gold/20 rounded-2xl">
+                <input
+                  type="checkbox"
+                  id="isZeroKm"
+                  checked={isZeroKm}
+                  onChange={(e) => {
+                    setIsZeroKm(e.target.checked);
+                    if (e.target.checked) setNewKM('0');
+                  }}
+                  className="w-5 h-5 rounded border-gold/30 text-gold focus:ring-gold"
+                />
+                <label htmlFor="isZeroKm" className="text-sm font-bold text-gold uppercase tracking-wider cursor-pointer">
+                  ✨ Veículo 0 KM
+                </label>
+              </div>
+
+              <div className="flex-1 flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
+                <input
+                  type="checkbox"
+                  id="isRepasse"
+                  checked={isRepasse}
+                  onChange={(e) => setIsRepasse(e.target.checked)}
+                  className="w-5 h-5 rounded border-red-500/30 text-red-500 focus:ring-red-500"
+                />
+                <label htmlFor="isRepasse" className="text-sm font-bold text-red-500 uppercase tracking-wider cursor-pointer">
+                  ⚠️ Repasse
+                </label>
+              </div>
+            </div>
+
+            <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-[10px] text-gold font-bold uppercase tracking-widest mb-4">Fotos do Veículo (Máx 6)</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+                    {currentImages.map((item, i) => (
+                      <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-black border border-white/10 group">
+                        <img src={item.url} className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => removeMedia(i, 'image')} className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded-full"><span className="material-symbols-outlined text-[14px]">close</span></button>
+                        {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-gold/90 text-black text-[7px] font-bold text-center py-0.5 uppercase">Capa</div>}
                       </div>
                     ))}
+                    {currentImages.length < 6 && (
+                      <button type="button" disabled={isUploading} onClick={() => imageInputRef.current?.click()} className={`aspect-square bg-surface-light border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'text-white/20 hover:border-gold hover:text-gold'}`}>
+                        {isUploading ? <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">add_a_photo</span>}
+                      </button>
+                    )}
+                  </div>
+                  <input type="file" ref={imageInputRef} className="hidden" accept="image/*" multiple onChange={(e) => handleFileChange(e, 'image')} />
+                </div>
+
+                {currentImages.length > 0 && (
+                  <div className="bg-white/5 p-4 rounded-xl border border-white/5 mb-6">
+                    <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-3 block">Ajustar Posição da Foto Principal (Capa)</label>
+                    <div className="flex gap-4 items-center">
+                      <div className="w-20 h-20 rounded-lg overflow-hidden relative border border-white/20">
+                        <img src={currentImages[0].url} className="w-full h-full object-cover" style={{ objectPosition: newImagePos }} />
+                      </div>
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-[8px] text-white/50 uppercase">Horizontal</span>
+                            <span className="text-[8px] text-white/50">{newImagePos.split(' ')[0]}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={parseInt(newImagePos.split(' ')[0])}
+                            onChange={(e) => setNewImagePos(`${e.target.value}% ${newImagePos.split(' ')[1]}`)}
+                            className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-[8px] text-white/50 uppercase">Vertical</span>
+                            <span className="text-[8px] text-white/50">{newImagePos.split(' ')[1]}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={parseInt(newImagePos.split(' ')[1])}
+                            onChange={(e) => setNewImagePos(`${newImagePos.split(' ')[0]} ${e.target.value}%`)}
+                            className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <h4 className="text-[10px] text-gold font-bold uppercase tracking-widest mb-4">Vídeos (Opcional - Máx 3)</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {currentVideos.map((item, i) => (
+                      <div key={i} className="relative aspect-video rounded-xl overflow-hidden bg-black border border-white/10">
+                        <video src={item.url} className="w-full h-full object-cover" muted />
+                        <button type="button" onClick={() => removeMedia(i, 'video')} className="absolute top-2 right-2 bg-black/70 text-white p-1.5 rounded-full"><span className="material-symbols-outlined">close</span></button>
+                      </div>
+                    ))}
+                    {currentVideos.length < 3 && (
+                      <button type="button" disabled={isUploading} onClick={() => videoInputRef.current?.click()} className={`aspect-video bg-surface-light border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'text-white/20 hover:border-gold hover:text-gold'}`}>
+                        {isUploading ? <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">videocam</span>}
+                      </button>
+                    )}
+                  </div>
+                  <input type="file" ref={videoInputRef} className="hidden" accept="video/*" multiple onChange={(e) => handleFileChange(e, 'video')} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="md:col-span-2">
+                  <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Modelo Comercial</label>
+                  <input value={newName} onChange={e => setNewName(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none uppercase" placeholder="Ex: BMW S1000RR M PACK" />
+                </div>
+                <div>
+                  <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">KM Atual</label>
+                  <input value={newKM} onChange={e => setNewKM(e.target.value)} disabled={isZeroKm} className={`w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none ${isZeroKm ? 'opacity-50 cursor-not-allowed' : ''}`} placeholder={isZeroKm ? "0 KM" : "Ex: 500"} />
+                </div>
+                <div>
+                  <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Preço (R$)</label>
+                  <input
+                    value={newPrice}
+                    onChange={e => setNewPrice(formatCurrency(e.target.value))}
+                    className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none"
+                    placeholder="125.000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Ano / Modelo</label>
+                  <input value={newYear} onChange={e => setNewYear(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="2024" />
+                </div>
+                <div>
+                  <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cor</label>
+                  <input value={newColor} onChange={e => setNewColor(e.target.value.toUpperCase())} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="Ex: PRETO" />
+                </div>
+                <div>
+
+                  {newType === VehicleType.MOTO ? (
+                    <div>
+                      <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Cilindradas (CC)</label>
+                      <input value={newDisplacement} onChange={e => setNewDisplacement(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none" placeholder="1000" />
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">Câmbio</label>
+                        <select value={newTransmission} onChange={e => setNewTransmission(e.target.value)} className="w-full bg-surface-light border border-white/5 text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none">
+                          <option value="Automático">Automático</option>
+                          <option value="Manual">Manual</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  <div>
+                    <label className="block text-[8px] text-white/40 uppercase font-bold tracking-widest mb-2 ml-1">PLACA (Final 3 Dígitos) *</label>
+                    <input
+                      value={newPlateLast3}
+                      onChange={(e) => setNewPlateLast3(e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 3).toUpperCase())}
+                      className={`w-full bg-surface-light border ${!newPlateLast3 ? 'border-red-500/30' : 'border-white/5'} text-white text-xs px-5 py-4 rounded-xl focus:border-gold outline-none font-mono tracking-widest text-center uppercase`}
+                      placeholder="ABC"
+                    />
                   </div>
                 </div>
+              </div>
 
-                <div className="flex gap-4">
-                  {fullEditingId && (
-                    <button type="button" onClick={resetForm} className="flex-1 py-6 bg-white/5 text-white text-[13px] font-heading tracking-[0.3em] rounded-full hover:bg-white/10 transition-all">
-                      CANCELAR
-                    </button>
-                  )}
-                  <button type="submit" disabled={isUploading} className={`flex-1 py-6 bg-gold text-black text-[13px] font-heading tracking-[0.3em] rounded-full shadow-2xl transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gold-light active:scale-[0.98]'}`}>
-                    {isUploading ? 'PROCESSANDO...' : fullEditingId ? 'ATUALIZAR VEÍCULO' : 'PUBLICAR NO CATÁLOGO'}
-                  </button>
-                </div>
-              </form>
-            )
-          }
-
-          {
-            activeTab === 'inventory' && (
-              <div className="space-y-4 pb-10">
-                {vehicles.filter(v => !v.isSold).map(v => (
-                  <div key={v.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 flex items-start gap-4 group hover:border-white/20 transition-all">
-                    <img src={v.imageUrl} className="w-20 h-20 rounded-2xl object-cover border border-white/5 shrink-0 mt-1" />
-                    <div className="flex-1 min-w-0">
-                      {editingId === v.id ? (
-                        <div className="flex flex-col gap-2">
-                          <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full bg-surface-light border border-gold/50 text-white text-[11px] px-3 py-1.5 rounded-lg focus:outline-none uppercase font-heading tracking-wider" />
-                          <input
-                            value={editPrice}
-                            onChange={(e) => setEditPrice(formatCurrency(e.target.value))}
-                            className="w-full bg-surface-light border border-gold/50 text-gold text-[10px] px-3 py-1.5 rounded-lg focus:outline-none font-bold"
-                          />
-                          <input value={editSpecs} onChange={e => setEditSpecs(e.target.value)} className="w-full bg-surface-light border border-white/10 text-white text-[10px] px-3 py-1.5 rounded-lg focus:outline-none" placeholder="Specs" />
-                        </div>
-                      ) : (
-                        <div className="cursor-pointer group/info" onClick={() => openFullEdit(v)}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-white text-xs font-heading tracking-wider truncate uppercase group-hover/info:text-gold transition-colors">{v.name}</h4>
-                            {v.plate_last3 && <span className="text-[8px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded font-mono border border-white/5">{v.plate_last3}</span>}
-                            {v.isFeatured && <span className="text-[8px] bg-gold text-black px-1.5 rounded font-bold uppercase">Destaque</span>}
-                          </div>
-                          <p className="text-gold text-[10px] font-bold">R$ {typeof v.price === 'number' ? v.price.toLocaleString('pt-BR') : v.price}</p>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-center gap-2 pt-1 shrink-0">
-                      {editingId === v.id ? (
-                        <>
-                          <button onClick={() => saveInlineEdit(v.id)} className="w-10 h-10 flex items-center justify-center bg-gold text-black rounded-full shadow-lg hover:scale-110 transition-all"><span className="material-symbols-outlined text-xl">check</span></button>
-                          <button onClick={() => setEditingId(null)} className="w-10 h-10 flex items-center justify-center bg-white/10 text-white/50 rounded-full hover:bg-white/20 transition-all"><span className="material-symbols-outlined text-xl">close</span></button>
-                        </>
-                      ) : (
-                        <>
-                          <button onClick={() => openFullEdit(v)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-blue-400 hover:bg-blue-400/20 transition-all" title="Editar Completo">
-                            <span className="material-symbols-outlined text-[18px]">edit</span>
-                          </button>
-                          <button onClick={() => {
-                            onUpdateVehicle(v.id, { isFeatured: !v.isFeatured });
-                            if (user?.email) logger.logAction(user.email, 'EDITAR', v.name, v.isFeatured ? 'Removeu Destaque' : 'Destacou');
-                          }} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isFeatured ? 'bg-gold/20 text-gold' : 'bg-white/5 text-white/20 hover:text-gold hover:bg-gold/10'}`} title={v.isFeatured ? "Remover Destaque" : "Destacar Veículo"}>
-                            <span className="material-symbols-outlined text-[18px]">star</span>
-                          </button>
-                          <button onClick={() => {
-                            onUpdateVehicle(v.id, { isPromoSemana: !v.isPromoSemana });
-                            if (user?.email) logger.logAction(user.email, 'EDITAR', v.name, v.isPromoSemana ? 'Removeu Promoção' : 'Colocou em Promoção');
-                          }} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isPromoSemana ? 'bg-red-500/20 text-red-500' : 'bg-white/5 text-white/20 hover:text-red-500 hover:bg-red-500/10'}`} title={v.isPromoSemana ? "Remover Promoção" : "Colocar em Promoção"}>
-                            <span className="material-symbols-outlined text-[18px]">local_fire_department</span>
-                          </button>
-                          <button onClick={() => setConfirmSoldId(v.id)} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isSold ? 'bg-green-500/20 text-green-500' : 'bg-white/5 text-yellow-500 hover:bg-yellow-500/20'}`} title={v.isSold ? "Marcar como Disponível" : "Marcar como Vendido"}>
-                            <span className="material-symbols-outlined text-[18px]">{v.isSold ? 'check_circle' : 'sell'}</span>
-                          </button>
-                          <button onClick={() => onDeleteVehicle(v.id)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-red-500 hover:bg-red-500/20 transition-all" title="Excluir">
-                            <span className="material-symbols-outlined text-[18px]">delete</span>
-                          </button>
-                        </>
-                      )}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-white/5">
+                {[
+                  { label: 'Único Dono', state: isSingleOwner, set: setIsSingleOwner, tooltip: 'Apenas um proprietário.' },
+                  { label: 'DUT', state: hasDut, set: setHasDut, tooltip: 'Documentação pronta.' },
+                  { label: 'Manual', state: hasManual, set: setHasManual, tooltip: 'Acompanha manual.' },
+                  { label: 'Chave Reserva', state: hasSpareKey, set: setHasSpareKey, tooltip: 'Possui chave reserva.' },
+                  { label: 'Promoção', state: isPromoSemana, set: setIsPromoSemana, tooltip: 'Marcar com tag de promoção.' },
+                  { label: 'Destaque', state: isFeatured, set: setIsFeatured, tooltip: 'Exibir no topo ou carrossel.' },
+                ].map(item => (
+                  <div key={item.label} className="relative flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 cursor-pointer hover:border-gold/30 transition-all group/tooltip">
+                    <input type="checkbox" id={`check-${item.label}`} checked={item.state} onChange={e => item.set(e.target.checked)} className="accent-gold w-4 h-4 cursor-pointer" />
+                    <label htmlFor={`check-${item.label}`} className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer">
+                      <span className="text-[10px] text-white/60 uppercase font-bold tracking-widest truncate">{item.label}</span>
+                    </label>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 p-4 bg-black/95 border border-gold/20 rounded-2xl text-[9px] text-white/70 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50">
+                      {item.tooltip}
                     </div>
                   </div>
                 ))}
-                {vehicles.filter(v => !v.isSold).length === 0 && (
-                  <div className="text-center py-12 text-white/20 text-xs font-bold uppercase tracking-widest bg-black/20 rounded-xl">
-                    Nenhum veículo em estoque
-                  </div>
-                )}
               </div>
-            )
-          }
+            </div>
 
-          {
-            activeTab === 'sold' && (
-              <div className="space-y-4 pb-10">
-                {vehicles.filter(v => v.isSold).map(v => (
-                  <div key={v.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 flex items-start gap-4 grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition-all">
-                    <img src={v.imageUrl} className="w-16 h-16 rounded-2xl object-cover border border-white/5 shrink-0 mt-1" />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-white/50 text-xs font-heading tracking-wider truncate uppercase line-through">{v.name}</h4>
-                      <span className="text-[9px] text-green-500/80 uppercase font-bold tracking-wider block mt-1">VENDIDO</span>
+            <div className="flex gap-4">
+              {fullEditingId && (
+                <button type="button" onClick={resetForm} className="flex-1 py-6 bg-white/5 text-white text-[13px] font-heading tracking-[0.3em] rounded-full hover:bg-white/10 transition-all">
+                  CANCELAR
+                </button>
+              )}
+              <button type="submit" disabled={isUploading} className={`flex-1 py-6 bg-gold text-black text-[13px] font-heading tracking-[0.3em] rounded-full shadow-2xl transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gold-light active:scale-[0.98]'}`}>
+                {isUploading ? 'PROCESSANDO...' : fullEditingId ? 'ATUALIZAR VEÍCULO' : 'PUBLICAR NO CATÁLOGO'}
+              </button>
+            </div>
+          </form>
+        )
+      }
+
+      {
+        activeTab === 'inventory' && (
+          <div className="space-y-4 pb-10">
+            {vehicles.filter(v => !v.isSold).map(v => (
+              <div key={v.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 flex items-start gap-4 group hover:border-white/20 transition-all">
+                <img src={v.imageUrl} className="w-20 h-20 rounded-2xl object-cover border border-white/5 shrink-0 mt-1" />
+                <div className="flex-1 min-w-0">
+                  {editingId === v.id ? (
+                    <div className="flex flex-col gap-2">
+                      <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full bg-surface-light border border-gold/50 text-white text-[11px] px-3 py-1.5 rounded-lg focus:outline-none uppercase font-heading tracking-wider" />
+                      <input
+                        value={editPrice}
+                        onChange={(e) => setEditPrice(formatCurrency(e.target.value))}
+                        className="w-full bg-surface-light border border-gold/50 text-gold text-[10px] px-3 py-1.5 rounded-lg focus:outline-none font-bold"
+                      />
+                      <input value={editSpecs} onChange={e => setEditSpecs(e.target.value)} className="w-full bg-surface-light border border-white/10 text-white text-[10px] px-3 py-1.5 rounded-lg focus:outline-none" placeholder="Specs" />
                     </div>
-                    <div className="flex flex-col items-center gap-2 pt-1 shrink-0">
-                      <button onClick={() => setConfirmSoldId(v.id)} className="w-8 h-8 flex items-center justify-center rounded-full bg-green-500/20 text-green-500 transition-all" title="Marcar como Disponível">
-                        <span className="material-symbols-outlined text-[18px]">undo</span>
+                  ) : (
+                    <div className="cursor-pointer group/info" onClick={() => openFullEdit(v)}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-white text-xs font-heading tracking-wider truncate uppercase group-hover/info:text-gold transition-colors">{v.name}</h4>
+                        {v.plate_last3 && <span className="text-[8px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded font-mono border border-white/5">{v.plate_last3}</span>}
+                        {v.isFeatured && <span className="text-[8px] bg-gold text-black px-1.5 rounded font-bold uppercase">Destaque</span>}
+                      </div>
+                      <p className="text-gold text-[10px] font-bold">R$ {typeof v.price === 'number' ? v.price.toLocaleString('pt-BR') : v.price}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col items-center gap-2 pt-1 shrink-0">
+                  {editingId === v.id ? (
+                    <>
+                      <button onClick={() => saveInlineEdit(v.id)} className="w-10 h-10 flex items-center justify-center bg-gold text-black rounded-full shadow-lg hover:scale-110 transition-all"><span className="material-symbols-outlined text-xl">check</span></button>
+                      <button onClick={() => setEditingId(null)} className="w-10 h-10 flex items-center justify-center bg-white/10 text-white/50 rounded-full hover:bg-white/20 transition-all"><span className="material-symbols-outlined text-xl">close</span></button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => openFullEdit(v)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-blue-400 hover:bg-blue-400/20 transition-all" title="Editar Completo">
+                        <span className="material-symbols-outlined text-[18px]">edit</span>
                       </button>
-                      <button onClick={() => onDeleteVehicle(v.id)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-red-500 hover:bg-red-500/20 transition-all" title="Excluir do Histórico">
+                      <button onClick={() => {
+                        onUpdateVehicle(v.id, { isFeatured: !v.isFeatured });
+                        if (user?.email) logger.logAction(user.email, 'EDITAR', v.name, v.isFeatured ? 'Removeu Destaque' : 'Destacou');
+                      }} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isFeatured ? 'bg-gold/20 text-gold' : 'bg-white/5 text-white/20 hover:text-gold hover:bg-gold/10'}`} title={v.isFeatured ? "Remover Destaque" : "Destacar Veículo"}>
+                        <span className="material-symbols-outlined text-[18px]">star</span>
+                      </button>
+                      <button onClick={() => {
+                        onUpdateVehicle(v.id, { isPromoSemana: !v.isPromoSemana });
+                        if (user?.email) logger.logAction(user.email, 'EDITAR', v.name, v.isPromoSemana ? 'Removeu Promoção' : 'Colocou em Promoção');
+                      }} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isPromoSemana ? 'bg-red-500/20 text-red-500' : 'bg-white/5 text-white/20 hover:text-red-500 hover:bg-red-500/10'}`} title={v.isPromoSemana ? "Remover Promoção" : "Colocar em Promoção"}>
+                        <span className="material-symbols-outlined text-[18px]">local_fire_department</span>
+                      </button>
+                      <button onClick={() => setConfirmSoldId(v.id)} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${v.isSold ? 'bg-green-500/20 text-green-500' : 'bg-white/5 text-yellow-500 hover:bg-yellow-500/20'}`} title={v.isSold ? "Marcar como Disponível" : "Marcar como Vendido"}>
+                        <span className="material-symbols-outlined text-[18px]">{v.isSold ? 'check_circle' : 'sell'}</span>
+                      </button>
+                      <button onClick={() => onDeleteVehicle(v.id)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-red-500 hover:bg-red-500/20 transition-all" title="Excluir">
                         <span className="material-symbols-outlined text-[18px]">delete</span>
                       </button>
-                    </div>
-                  </div>
-                ))}
-                {vehicles.filter(v => v.isSold).length === 0 && (
-                  <div className="text-center py-12 text-white/20 text-xs font-bold uppercase tracking-widest bg-black/20 rounded-xl">
-                    Nenhum veículo vendido
-                  </div>
-                )}
-              </div>
-            )
-          }
-
-          {
-            activeTab === 'logs' && (
-              <div className="space-y-8 animate-in fade-in duration-300">
-                {/* Seção de Auditoria (Admin Actions) */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
-                    <h3 className="text-gold text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-2">
-                      <span className="material-symbols-outlined text-sm">security</span> Auditoria (Suas Ações)
-                    </h3>
-                    <button
-                      onClick={handleClearAuditLogs}
-                      className="text-[9px] font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1"
-                    >
-                      <span className="material-symbols-outlined text-sm">delete_sweep</span> Limpar Tudo
-                    </button>
-                  </div>
-                  <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
-                    <table className="w-full text-left">
-                      <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
-                        <tr>
-                          <th className="p-4">Data</th>
-                          <th className="p-4">Ação</th>
-                          <th className="p-4">Alvo</th>
-                          <th className="p-4 hidden sm:table-cell">Detalhes</th>
-                          <th className="p-4 w-10"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-[10px] text-white/70">
-                        {auditLogs.map(log => (
-                          <tr key={log.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                            <td className="p-4 whitespace-nowrap opacity-60">
-                              {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR') : '-'}
-                            </td>
-                            <td className="p-4">
-                              <span className={`px-2 py-1 rounded text-[8px] font-bold uppercase ${log.action_type === 'CRIAR' ? 'bg-green-500/20 text-green-400' :
-                                log.action_type === 'EXCLUIR' ? 'bg-red-500/20 text-red-400' :
-                                  'bg-blue-500/20 text-blue-400'
-                                }`}>
-                                {log.action_type}
-                              </span>
-                            </td>
-                            <td className="p-4 font-bold text-white max-w-[150px] truncate" title={log.target}>{log.target}</td>
-                            <td className="p-4 hidden sm:table-cell opacity-60 truncate max-w-[200px]" title={log.details}>{log.details}</td>
-                            <td className="p-4">
-                              <button
-                                onClick={() => log.id && handleDeleteAuditLog(log.id)}
-                                className="w-6 h-6 flex items-center justify-center rounded-full text-white/20 hover:text-red-500 hover:bg-white/10 transition-all"
-                                title="Excluir Registro"
-                              >
-                                <span className="material-symbols-outlined text-sm">delete</span>
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                        {auditLogs.length === 0 && (
-                          <tr><td colSpan={4} className="p-8 text-center text-white/20">Nenhuma ação registrada.</td></tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Seção de Acessos (Visitas) */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
-                    <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-2">
-                      <span className="material-symbols-outlined text-sm">public</span> Visitas Recentes
-                    </h3>
-                    <button
-                      onClick={handleClearAccessLogs}
-                      className="text-[9px] font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1"
-                    >
-                      <span className="material-symbols-outlined text-sm">delete_sweep</span> Limpar Tudo
-                    </button>
-                  </div>
-                  <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
-                    <table className="w-full text-left">
-                      <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
-                        <tr>
-                          <th className="p-4">Data</th>
-                          <th className="p-4">Local</th>
-                          <th className="p-4">Dispositivo</th>
-                          <th className="p-4 hidden sm:table-cell">IP</th>
-                          <th className="p-4 w-10"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-[10px] text-white/70">
-                        {accessLogs.map(log => {
-                          // Tentar parsear o JSON para a visualização resumida
-                          let deviceInfo = log.device_info;
-                          let isp = '';
-                          try {
-                            const details = JSON.parse(log.device_info);
-                            deviceInfo = `${details.platform} - ${details.browser || 'Navegador'} (${details.screen})`;
-                            isp = details.isp;
-                          } catch (e) {
-                            // Fallback se for texto antigo
-                          }
-
-                          return (
-                            <tr
-                              key={log.id}
-                              onClick={() => setSelectedLog(log)}
-                              className="border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer group"
-                              title="Clique para ver detalhes completos"
-                            >
-                              <td className="p-4 whitespace-nowrap opacity-60 group-hover:opacity-100 group-hover:text-gold transition-all">
-                                {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR') : '-'}
-                              </td>
-                              <td className="p-4 font-bold text-white">
-                                {log.location}
-                                <div className="text-[8px] opacity-40 font-normal">{isp}</div>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center gap-2">
-                                  <span className="material-symbols-outlined text-sm opacity-50">
-                                    {log.device_type === 'Mobile' ? 'smartphone' : 'computer'}
-                                  </span>
-                                  <span>{log.device_type}</span>
-                                </div>
-                                <div className="text-[8px] opacity-40 hidden sm:block truncate max-w-[150px]">{deviceInfo}</div>
-                              </td>
-                              <td className="p-4 hidden sm:table-cell font-mono opacity-50 group-hover:text-white transition-all">{log.ip}</td>
-                              <td className="p-4">
-                                <button
-                                  onClick={(e) => log.id && handleDeleteAccessLog(log.id, e)}
-                                  className="w-6 h-6 flex items-center justify-center rounded-full text-white/20 hover:text-red-500 hover:bg-white/10 transition-all"
-                                  title="Excluir Registro"
-                                >
-                                  <span className="material-symbols-outlined text-sm">delete</span>
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {accessLogs.length === 0 && (
-                          <tr><td colSpan={4} className="p-8 text-center text-white/20">Nenhum acesso registrado.</td></tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                    </>
+                  )}
                 </div>
               </div>
-            )
-          }
-
-          {/* Modal de Detalhes de Log */}
-          {selectedLog && (
-            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedLog(null)}>
-              <div className="bg-surface border border-white/10 p-6 rounded-2xl w-full max-w-lg shadow-2xl relative" onClick={e => e.stopPropagation()}>
-                <button onClick={() => setSelectedLog(null)} className="absolute top-4 right-4 text-white/30 hover:text-white">
-                  <span className="material-symbols-outlined">close</span>
-                </button>
-
-                <h3 className="text-gold font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <span className="material-symbols-outlined">fingerprint</span> Detalhes do Acesso
-                </h3>
-
-                <div className="space-y-4 text-sm text-white/80">
-                  <div className="grid grid-cols-2 gap-4 bg-white/5 p-4 rounded-xl">
-                    <div>
-                      <span className="text-[10px] uppercase text-white/30 block">IP</span>
-                      <span className="font-mono text-gold">{selectedLog.ip}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase text-white/30 block">Data</span>
-                      <span>{selectedLog.created_at ? new Date(selectedLog.created_at).toLocaleString('pt-BR') : '-'}</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/5 p-4 rounded-xl space-y-3">
-                    <div>
-                      <span className="text-[10px] uppercase text-white/30 block mb-1">Localização</span>
-                      <div className="text-lg">{selectedLog.location}</div>
-                    </div>
-
-                    <hr className="border-white/5" />
-
-                    <div>
-                      <span className="text-[10px] uppercase text-white/30 block mb-1">Dados Técnicos</span>
-                      <pre className="text-[10px] font-mono bg-black/50 p-2 rounded-lg overflow-x-auto text-green-400/80">
-                        {(() => {
-                          try {
-                            return JSON.stringify(JSON.parse(selectedLog.device_info), null, 2);
-                          } catch (e) {
-                            return selectedLog.device_info;
-                          }
-                        })()}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
+            ))}
+            {vehicles.filter(v => !v.isSold).length === 0 && (
+              <div className="text-center py-12 text-white/20 text-xs font-bold uppercase tracking-widest bg-black/20 rounded-xl">
+                Nenhum veículo em estoque
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        )
+      }
 
-
-
-          {confirmSoldId && (
-            <div className="absolute inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-8">
-              <div className="bg-surface border border-white/10 p-10 rounded-[2.5rem] max-w-sm w-full text-center space-y-8 shadow-3xl">
-                <span className="material-symbols-outlined text-red-500 text-5xl">shopping_cart_checkout</span>
-                <h3 className="text-white font-heading text-xl uppercase tracking-wider">Confirmar Alteração</h3>
-                <p className="text-white/50 text-xs">
-                  {vehicles.find(v => v.id === confirmSoldId)?.isSold
-                    ? "Deseja marcar este veículo como DISPONÍVEL novamente?"
-                    : "Deseja marcar este veículo como VENDIDO? Ele sairá da vitrine principal."}
-                </p>
-                <div className="flex flex-col gap-3">
-                  <button
-                    onClick={() => {
-                      const v = vehicles.find(v => v.id === confirmSoldId);
-                      if (v) {
-                        onUpdateVehicle(confirmSoldId, { isSold: !v.isSold });
-                        if (user?.email) logger.logAction(user.email, 'EDITAR', v.name, v.isSold ? 'Marcou como Disponível' : 'Marcou como Vendido');
-                      }
-                      setConfirmSoldId(null);
-                    }}
-                    className="w-full py-5 bg-gold text-black text-[11px] font-bold uppercase tracking-widest rounded-full hover:brightness-110"
-                  >
-                    Sim, confirmar
+      {
+        activeTab === 'sold' && (
+          <div className="space-y-4 pb-10">
+            {vehicles.filter(v => v.isSold).map(v => (
+              <div key={v.id} className="bg-white/5 p-4 rounded-3xl border border-white/5 flex items-start gap-4 grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition-all">
+                <img src={v.imageUrl} className="w-16 h-16 rounded-2xl object-cover border border-white/5 shrink-0 mt-1" />
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-white/50 text-xs font-heading tracking-wider truncate uppercase line-through">{v.name}</h4>
+                  <span className="text-[9px] text-green-500/80 uppercase font-bold tracking-wider block mt-1">VENDIDO</span>
+                </div>
+                <div className="flex flex-col items-center gap-2 pt-1 shrink-0">
+                  <button onClick={() => setConfirmSoldId(v.id)} className="w-8 h-8 flex items-center justify-center rounded-full bg-green-500/20 text-green-500 transition-all" title="Marcar como Disponível">
+                    <span className="material-symbols-outlined text-[18px]">undo</span>
                   </button>
-                  <button onClick={() => setConfirmSoldId(null)} className="w-full py-5 bg-white/5 text-white/50 text-[11px] font-bold uppercase tracking-widest rounded-full hover:bg-white/10 hover:text-white transition-all">Cancelar</button>
+                  <button onClick={() => onDeleteVehicle(v.id)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-red-500 hover:bg-red-500/20 transition-all" title="Excluir do Histórico">
+                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+            {vehicles.filter(v => v.isSold).length === 0 && (
+              <div className="text-center py-12 text-white/20 text-xs font-bold uppercase tracking-widest bg-black/20 rounded-xl">
+                Nenhum veículo vendido
+              </div>
+            )}
+          </div>
+        )
+      }
+
+      {
+        activeTab === 'logs' && (
+          <div className="space-y-8 animate-in fade-in duration-300">
+            {/* Seção de Auditoria (Admin Actions) */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                <h3 className="text-gold text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">security</span> Auditoria (Suas Ações)
+                </h3>
+                <button
+                  onClick={handleClearAuditLogs}
+                  className="text-[9px] font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-sm">delete_sweep</span> Limpar Tudo
+                </button>
+              </div>
+              <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
+                    <tr>
+                      <th className="p-4">Data</th>
+                      <th className="p-4">Ação</th>
+                      <th className="p-4">Alvo</th>
+                      <th className="p-4 hidden sm:table-cell">Detalhes</th>
+                      <th className="p-4 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[10px] text-white/70">
+                    {auditLogs.map(log => (
+                      <tr key={log.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <td className="p-4 whitespace-nowrap opacity-60">
+                          {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR') : '-'}
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 rounded text-[8px] font-bold uppercase ${log.action_type === 'CRIAR' ? 'bg-green-500/20 text-green-400' :
+                            log.action_type === 'EXCLUIR' ? 'bg-red-500/20 text-red-400' :
+                              'bg-blue-500/20 text-blue-400'
+                            }`}>
+                            {log.action_type}
+                          </span>
+                        </td>
+                        <td className="p-4 font-bold text-white max-w-[150px] truncate" title={log.target}>{log.target}</td>
+                        <td className="p-4 hidden sm:table-cell opacity-60 truncate max-w-[200px]" title={log.details}>{log.details}</td>
+                        <td className="p-4">
+                          <button
+                            onClick={() => log.id && handleDeleteAuditLog(log.id)}
+                            className="w-6 h-6 flex items-center justify-center rounded-full text-white/20 hover:text-red-500 hover:bg-white/10 transition-all"
+                            title="Excluir Registro"
+                          >
+                            <span className="material-symbols-outlined text-sm">delete</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {auditLogs.length === 0 && (
+                      <tr><td colSpan={4} className="p-8 text-center text-white/20">Nenhuma ação registrada.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Seção de Acessos (Visitas) */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                <h3 className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">public</span> Visitas Recentes
+                </h3>
+                <button
+                  onClick={handleClearAccessLogs}
+                  className="text-[9px] font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-sm">delete_sweep</span> Limpar Tudo
+                </button>
+              </div>
+              <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
+                    <tr>
+                      <th className="p-4">Data</th>
+                      <th className="p-4">Local</th>
+                      <th className="p-4">Dispositivo</th>
+                      <th className="p-4 hidden sm:table-cell">IP</th>
+                      <th className="p-4 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[10px] text-white/70">
+                    {accessLogs.map(log => {
+                      // Tentar parsear o JSON para a visualização resumida
+                      let deviceInfo = log.device_info;
+                      let isp = '';
+                      try {
+                        const details = JSON.parse(log.device_info);
+                        deviceInfo = `${details.platform} - ${details.browser || 'Navegador'} (${details.screen})`;
+                        isp = details.isp;
+                      } catch (e) {
+                        // Fallback se for texto antigo
+                      }
+
+                      return (
+                        <tr
+                          key={log.id}
+                          onClick={() => setSelectedLog(log)}
+                          className="border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer group"
+                          title="Clique para ver detalhes completos"
+                        >
+                          <td className="p-4 whitespace-nowrap opacity-60 group-hover:opacity-100 group-hover:text-gold transition-all">
+                            {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR') : '-'}
+                          </td>
+                          <td className="p-4 font-bold text-white">
+                            {log.location}
+                            <div className="text-[8px] opacity-40 font-normal">{isp}</div>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-sm opacity-50">
+                                {log.device_type === 'Mobile' ? 'smartphone' : 'computer'}
+                              </span>
+                              <span>{log.device_type}</span>
+                            </div>
+                            <div className="text-[8px] opacity-40 hidden sm:block truncate max-w-[150px]">{deviceInfo}</div>
+                          </td>
+                          <td className="p-4 hidden sm:table-cell font-mono opacity-50 group-hover:text-white transition-all">{log.ip}</td>
+                          <td className="p-4">
+                            <button
+                              onClick={(e) => log.id && handleDeleteAccessLog(log.id, e)}
+                              className="w-6 h-6 flex items-center justify-center rounded-full text-white/20 hover:text-red-500 hover:bg-white/10 transition-all"
+                              title="Excluir Registro"
+                            >
+                              <span className="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {accessLogs.length === 0 && (
+                      <tr><td colSpan={4} className="p-8 text-center text-white/20">Nenhum acesso registrado.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Modal de Detalhes de Log */}
+      {selectedLog && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedLog(null)}>
+          <div className="bg-surface border border-white/10 p-6 rounded-2xl w-full max-w-lg shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setSelectedLog(null)} className="absolute top-4 right-4 text-white/30 hover:text-white">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+
+            <h3 className="text-gold font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
+              <span className="material-symbols-outlined">fingerprint</span> Detalhes do Acesso
+            </h3>
+
+            <div className="space-y-4 text-sm text-white/80">
+              <div className="grid grid-cols-2 gap-4 bg-white/5 p-4 rounded-xl">
+                <div>
+                  <span className="text-[10px] uppercase text-white/30 block">IP</span>
+                  <span className="font-mono text-gold">{selectedLog.ip}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase text-white/30 block">Data</span>
+                  <span>{selectedLog.created_at ? new Date(selectedLog.created_at).toLocaleString('pt-BR') : '-'}</span>
+                </div>
+              </div>
+
+              <div className="bg-white/5 p-4 rounded-xl space-y-3">
+                <div>
+                  <span className="text-[10px] uppercase text-white/30 block mb-1">Localização</span>
+                  <div className="text-lg">{selectedLog.location}</div>
+                </div>
+
+                <hr className="border-white/5" />
+
+                <div>
+                  <span className="text-[10px] uppercase text-white/30 block mb-1">Dados Técnicos</span>
+                  <pre className="text-[10px] font-mono bg-black/50 p-2 rounded-lg overflow-x-auto text-green-400/80">
+                    {(() => {
+                      try {
+                        return JSON.stringify(JSON.parse(selectedLog.device_info), null, 2);
+                      } catch (e) {
+                        return selectedLog.device_info;
+                      }
+                    })()}
+                  </pre>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
+
+
+
+      {confirmSoldId && (
+        <div className="absolute inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-8">
+          <div className="bg-surface border border-white/10 p-10 rounded-[2.5rem] max-w-sm w-full text-center space-y-8 shadow-3xl">
+            <span className="material-symbols-outlined text-red-500 text-5xl">shopping_cart_checkout</span>
+            <h3 className="text-white font-heading text-xl uppercase tracking-wider">Confirmar Alteração</h3>
+            <p className="text-white/50 text-xs">
+              {vehicles.find(v => v.id === confirmSoldId)?.isSold
+                ? "Deseja marcar este veículo como DISPONÍVEL novamente?"
+                : "Deseja marcar este veículo como VENDIDO? Ele sairá da vitrine principal."}
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  const v = vehicles.find(v => v.id === confirmSoldId);
+                  if (v) {
+                    onUpdateVehicle(confirmSoldId, { isSold: !v.isSold });
+                    if (user?.email) logger.logAction(user.email, 'EDITAR', v.name, v.isSold ? 'Marcou como Disponível' : 'Marcou como Vendido');
+                  }
+                  setConfirmSoldId(null);
+                }}
+                className="w-full py-5 bg-gold text-black text-[11px] font-bold uppercase tracking-widest rounded-full hover:brightness-110"
+              >
+                Sim, confirmar
+              </button>
+              <button onClick={() => setConfirmSoldId(null)} className="w-full py-5 bg-white/5 text-white/50 text-[11px] font-bold uppercase tracking-widest rounded-full hover:bg-white/10 hover:text-white transition-all">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
