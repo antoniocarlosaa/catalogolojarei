@@ -365,6 +365,14 @@ class VehicleService {
       throw error;
     }
   }
+  // Notificar assinantes (Stub)
+  async notifySubscribers(vehicle: Vehicle): Promise<void> {
+    // Em um cenário real, isso chamaria uma Edge Function ou API externa
+    // que leria a tabela 'newsletter_subscriptions' e dispararia mensagens.
+    console.log(`🔔 Stub: Notificando assinantes sobre o veículo: ${vehicle.name}`);
+    // Exemplo de integração futura:
+    // await supabase.functions.invoke('notify-new-vehicle', { body: { vehicle } });
+  }
 }
 
 export const db = new VehicleService();

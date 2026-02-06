@@ -73,43 +73,61 @@ const NewsletterModal: React.FC = () => {
                         </div>
                     ) : (
                         <>
-                            <div className="w-12 h-12 bg-gold/10 text-gold rounded-full flex items-center justify-center mb-6">
-                                <span className="material-symbols-outlined text-2xl">notifications_active</span>
+                            <div className="w-12 h-12 bg-[#25D366]/20 text-[#25D366] rounded-full flex items-center justify-center mb-6 animate-bounce">
+                                <span className="material-symbols-outlined text-2xl">chat</span>
                             </div>
 
-                            <h3 className="text-2xl font-heading text-white mb-2">Novidades Exclusivas</h3>
+                            <h3 className="text-2xl font-heading text-white mb-2">Receba no WhatsApp!</h3>
                             <p className="text-white/60 text-sm mb-6 max-w-xs">
-                                Cadastre-se para receber avisos sobre novos veículos de luxo e ofertas especiais em primeira mão.
+                                Seja o primeiro a saber quando chegar uma nova nave. Cadastre seu WhatsApp para receber alertas em tempo real.
                             </p>
 
                             <form onSubmit={handleSubmit} className="w-full space-y-4">
                                 <input
                                     type="text"
-                                    placeholder="Seu Nome (Opcional)"
+                                    placeholder="Seu Nome"
                                     value={name}
                                     onChange={e => setName(e.target.value)}
-                                    className="w-full bg-black/20 border border-white/10 text-white px-4 py-3 rounded-xl focus:border-gold outline-none text-sm placeholder:text-white/20"
+                                    className="w-full bg-black/20 border border-white/10 text-white px-4 py-3 rounded-xl focus:border-[#25D366] outline-none text-sm placeholder:text-white/20"
                                 />
                                 <input
-                                    type="email"
+                                    type="tel"
                                     required
-                                    placeholder="Seu Melhor E-mail"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    className="w-full bg-black/20 border border-white/10 text-white px-4 py-3 rounded-xl focus:border-gold outline-none text-sm placeholder:text-white/20"
+                                    placeholder="(99) 99999-9999"
+                                    value={email} // Using email state for phone to minimize refactor lines, conceptually it's 'contact'
+                                    onChange={e => {
+                                        // Simple mask
+                                        let v = e.target.value.replace(/\D/g, '');
+                                        v = v.replace(/^(\d{2})(\d)/g, '($1) $2');
+                                        v = v.replace(/(\d)(\d{4})$/, '$1-$2');
+                                        setEmail(v);
+                                    }}
+                                    maxLength={15}
+                                    className="w-full bg-black/20 border border-white/10 text-white px-4 py-3 rounded-xl focus:border-[#25D366] outline-none text-sm placeholder:text-white/20"
                                 />
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full bg-gold text-black font-bold uppercase tracking-widest text-xs py-4 rounded-xl hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full bg-[#25D366] text-white font-bold uppercase tracking-widest text-xs py-4 rounded-xl hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(37,211,102,0.4)]"
                                 >
-                                    {loading ? 'Inscrevendo...' : 'Quero Receber Novidades'}
+                                    {loading ? 'Cadastrando...' : 'Ativar Alerta WhatsApp'}
                                 </button>
                             </form>
 
-                            <p className="mt-4 text-[10px] text-white/20">
-                                Respeitamos sua privacidade. Cancele quando quiser.
-                            </p>
+                            <div className="mt-6 flex flex-col gap-2 w-full">
+                                <button
+                                    onClick={() => {
+                                        if (confirm("Deseja realmente parar de receber os alertas?")) {
+                                            localStorage.removeItem('newsletter_subscribed');
+                                            alert("Você foi removido da lista localmente. Para remoção total, contate o admin.");
+                                            handleClose();
+                                        }
+                                    }}
+                                    className="text-[10px] text-white/30 hover:text-red-400 underline decoration-dotted cursor-pointer transition-colors"
+                                >
+                                    Não quero mais receber mensagens
+                                </button>
+                            </div>
                         </>
                     )}
                 </div>

@@ -67,10 +67,14 @@ const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick, onNews
                     ))}
                     <button
                         onClick={onNewsletterClick}
-                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 hover:bg-gold/20 text-gold transition-colors text-xs font-bold uppercase tracking-widest border border-gold/20"
+                        className="relative flex items-center gap-2 px-5 py-2 rounded-full bg-gold text-black transition-all text-xs font-bold uppercase tracking-widest hover:scale-105 shadow-[0_0_15px_rgba(251,191,36,0.6)] animate-pulse"
                     >
-                        <span className="material-symbols-outlined text-sm">campaign</span>
-                        <span>Novidades</span>
+                        <span className="material-symbols-outlined text-sm">notifications_active</span>
+                        <span>Alerta de Estoque</span>
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
                     </button>
                 </nav>
 
@@ -78,10 +82,14 @@ const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick, onNews
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onNewsletterClick}
-                        className="md:hidden w-10 h-10 flex items-center justify-center text-gold hover:text-white transition-colors rounded-full hover:bg-white/10"
-                        title="Novidades"
+                        className="md:hidden w-10 h-10 flex items-center justify-center text-gold hover:text-white transition-colors rounded-full hover:bg-white/10 relative"
+                        title="Alerta de Estoque"
                     >
-                        <span className="material-symbols-outlined">campaign</span>
+                        <span className="material-symbols-outlined animate-bounce">notifications_active</span>
+                        <span className="absolute top-2 right-2 flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                        </span>
                     </button>
 
                     <button
