@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Vehicle, VehicleType, AppSettings } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { logger, AccessLog, AuditLog } from '../services/LogService';
+import { db } from '../services/VehicleService';
 import { supabase } from '../services/supabase';
 
 
@@ -112,10 +113,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const loadLeads = async () => {
     try {
+      console.log("🔄 Carregando leads... User:", user);
       const data = await db.getNewsletterSubscriptions();
+      console.log("✅ Leads carregados:", data);
       setLeads(data);
     } catch (err) {
-      console.error("Erro ao carregar leads", err);
+      console.error("❌ Erro ao carregar leads:", err);
     }
   };
 
