@@ -148,34 +148,34 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
           </h4>
 
           {/* Details Row - Cleaned up */}
-          <div className="flex items-center gap-3 text-[10px] text-white/60 font-medium uppercase tracking-wider mb-auto">
+          <div className="flex items-center gap-3 text-[10px] text-gold font-bold uppercase tracking-wider mb-auto">
             {/* Ano com cor destacada */}
             <span className="text-gold font-bold">{vehicle.year || '-'}</span>
 
-            <span className="w-px h-3 bg-white/20 flex-shrink-0"></span>
+            <span className="w-px h-3 bg-gold/30 flex-shrink-0"></span>
 
             {/* Cilindrada com cor destacada (se houver) */}
             {vehicle.displacement && (
               <>
                 <span className="text-gold font-bold">{vehicle.displacement} CC</span>
-                <span className="w-px h-3 bg-white/20 flex-shrink-0"></span>
+                <span className="w-px h-3 bg-gold/30 flex-shrink-0"></span>
               </>
             )}
 
             {/* KM com Ícone */}
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="material-symbols-outlined text-[14px] text-white/40">speed</span>
+              <span className="material-symbols-outlined text-[14px]">speed</span>
               <span className="truncate">{
                 vehicle.km === undefined ? '-' :
                   vehicle.km <= 0 ? '0 KM' :
-                    vehicle.km <= 10 ? '0 KM' : // Simplificado para visual "Zero"
-                      `${vehicle.km.toLocaleString('pt-BR')}`
+                    vehicle.km <= 10 ? '0 KM' :
+                      `${vehicle.km.toLocaleString('pt-BR')} KM`
               }</span>
             </div>
           </div>
 
           {/* Cod & Placa Section */}
-          <div className="flex items-center justify-between text-[9px] text-white/40 font-monouppercase tracking-wider mt-1 border-t border-white/5 pt-1">
+          <div className="flex items-center justify-between text-[9px] text-gold/70 font-mono uppercase tracking-wider mt-1 border-t border-gold/10 pt-1">
             {vehicle.plate_last3 && (
               <span title={`Final Placa: ${vehicle.plate_last3}`}>PLACA: {vehicle.plate_last3}</span>
             )}
@@ -184,7 +184,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
           {/* Category/Specs below detail row if needed, or just keep it simple. User wanted order. */}
           {/* Let's put category on its own line if it exists to avoid wrapping weirdness with the dots */}
           {(vehicle.category || vehicle.specs) && (
-            <div className="text-[9px] text-white/40 font-medium uppercase tracking-widest truncate mb-2 mt-1">
+            <div className="text-[9px] text-gold/70 font-medium uppercase tracking-widest truncate mb-2 mt-1">
               {vehicle.category || (vehicle.specs ? vehicle.specs.split('|').filter(s => {
                 const upper = s.trim().toUpperCase();
                 return !upper.startsWith('COR:') && !upper.startsWith('ANO:') && !upper.startsWith('KM:') && !upper.startsWith('[KM') && !upper.startsWith('SEMI NOVA') && !upper.startsWith('ZERO KM');
@@ -194,7 +194,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
 
 
           <div className="mt-2 pt-2 border-t border-white/5">
-            <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">A partir de</p>
+            <p className="text-gold/60 text-[9px] font-bold uppercase tracking-widest">A partir de</p>
             <p className="text-white font-bold text-lg leading-tight">
               {typeof vehicle.price === 'number' ? `R$ ${vehicle.price.toLocaleString('pt-BR')}` : vehicle.price}
             </p>
