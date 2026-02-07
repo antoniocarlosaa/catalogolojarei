@@ -1,0 +1,2 @@
+Deployment Verification: 2026-02-06T23:02:00
+Changes: Vehicle Card Styling & Newsletter Admin

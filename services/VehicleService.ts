@@ -382,6 +382,38 @@ class VehicleService {
     // Exemplo de integração futura:
     // await supabase.functions.invoke('notify-new-vehicle', { body: { vehicle } });
   }
+
+  // --- NEWSLETTER / LEADS ---
+
+  async getNewsletterSubscriptions(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('newsletter_subscriptions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar inscritos:', error);
+      return [];
+    }
+  }
+
+  async deleteNewsletterSubscription(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('newsletter_subscriptions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Erro ao deletar inscrito:', error);
+      return false;
+    }
+  }
 }
 
 export const db = new VehicleService();

@@ -60,7 +60,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   onClose
 }) => {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'inventory' | 'upload' | 'sold' | 'logs'>('whatsapp');
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'inventory' | 'upload' | 'sold' | 'logs' | 'leads'>('whatsapp');
   const [numbers, setNumbers] = useState<string[]>(
     Array(10).fill('').map((_, i) => currentNumbers[i] || '')
   );
@@ -81,6 +81,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<AccessLog | null>(null); // State para o Modal de Detalhes
+
+  // State para Leads (Newsletter)
+  const [leads, setLeads] = useState<any[]>([]);
 
   // Fechar o painel automaticamente se o usuário não estiver logado (Logout)
   React.useEffect(() => {
@@ -107,12 +110,31 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
+  const loadLeads = async () => {
+    try {
+      const data = await db.getNewsletterSubscriptions();
+      setLeads(data);
+    } catch (err) {
+      console.error("Erro ao carregar leads", err);
+    }
+  };
+
   // Carregar logs quando mudar para a aba
   useEffect(() => {
     if (activeTab === 'logs') {
       loadLogs();
+    } else if (activeTab === 'leads') {
+      loadLeads();
     }
   }, [activeTab]);
+
+  const handleDeleteLead = async (id: string) => {
+    if (!confirm("Excluir este lead?")) return;
+    try {
+      await db.deleteNewsletterSubscription(id);
+      setLeads(prev => prev.filter(l => l.id !== id));
+    } catch (e) { alert("Erro ao excluir lead."); }
+  };
 
   const handleDeleteAuditLog = async (id: string) => {
     if (!confirm("Excluir este registro?")) return;
@@ -467,6 +489,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             { id: 'inventory', icon: 'garage_home', label: 'Estoque' },
             { id: 'upload', icon: 'add_circle', label: 'Novo Veículo' },
             { id: 'sold', icon: 'sell', label: 'Vendidos' },
+            { id: 'leads', icon: 'contact_phone', label: 'Leads WhatsApp' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -1146,6 +1169,63 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     Nenhum veículo vendido
                   </div>
                 )}
+              </div>
+            )
+          }
+
+          {
+            activeTab === 'leads' && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                      <span className="material-symbols-outlined text-lg">contact_phone</span> Leads (Inscritos WhatsApp)
+                    </h3>
+                    <div className="text-[10px] text-white/50 bg-white/10 px-3 py-1 rounded-full font-bold">
+                      Total: {leads.length}
+                    </div>
+                  </div>
+
+                  <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
+                        <tr>
+                          <th className="p-4">Data</th>
+                          <th className="p-4">Nome</th>
+                          <th className="p-4">WhatsApp</th>
+                          <th className="p-4 w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[10px] text-white/70">
+                        {leads.map(lead => (
+                          <tr key={lead.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td className="p-4 whitespace-nowrap opacity-60">
+                              {lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-'}
+                            </td>
+                            <td className="p-4 font-bold text-white uppercase">{lead.name || '-'}</td>
+                            <td className="p-4 font-mono text-green-400">
+                              <a href={`https://wa.me/55${lead.email?.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="hover:underline flex items-center gap-1">
+                                {lead.email} <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                              </a>
+                            </td>
+                            <td className="p-4">
+                              <button
+                                onClick={() => handleDeleteLead(lead.id)}
+                                className="w-6 h-6 flex items-center justify-center rounded-full text-white/20 hover:text-red-500 hover:bg-white/10 transition-all"
+                                title="Excluir Lead"
+                              >
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {leads.length === 0 && (
+                          <tr><td colSpan={4} className="p-8 text-center text-white/20">Nenhum lead cadastrado.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )
           }

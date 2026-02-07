@@ -148,16 +148,30 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
           </h4>
 
           {/* Details Row - Cleaned up */}
-          <div className="flex items-center gap-2 text-[10px] text-white/60 font-medium uppercase tracking-wider mb-auto">
-            <span className="whitespace-nowrap">{vehicle.year || '-'}</span>
-            <span className="w-1 h-1 bg-white/20 rounded-full flex-shrink-0"></span>
-            <span className="whitespace-nowrap">{
-              vehicle.km === undefined ? '-' :
-                vehicle.km <= 0 ? '0 KM' :
-                  vehicle.km <= 10 ? 'SEMI NOVA' :
-                    vehicle.km < 20 ? 'KM BAIXO' :
-                      `${vehicle.km.toLocaleString('pt-BR')} KM`
-            }</span>
+          <div className="flex items-center gap-3 text-[10px] text-white/60 font-medium uppercase tracking-wider mb-auto">
+            {/* Ano com cor destacada */}
+            <span className="text-gold font-bold">{vehicle.year || '-'}</span>
+
+            <span className="w-px h-3 bg-white/20 flex-shrink-0"></span>
+
+            {/* Cilindrada com cor destacada (se houver) */}
+            {vehicle.displacement && (
+              <>
+                <span className="text-gold font-bold">{vehicle.displacement} CC</span>
+                <span className="w-px h-3 bg-white/20 flex-shrink-0"></span>
+              </>
+            )}
+
+            {/* KM com Ícone */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="material-symbols-outlined text-[14px] text-white/40">speed</span>
+              <span className="truncate">{
+                vehicle.km === undefined ? '-' :
+                  vehicle.km <= 0 ? '0 KM' :
+                    vehicle.km <= 10 ? '0 KM' : // Simplificado para visual "Zero"
+                      `${vehicle.km.toLocaleString('pt-BR')}`
+              }</span>
+            </div>
           </div>
 
           {/* Cod & Placa Section */}
