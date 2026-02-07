@@ -58,6 +58,18 @@ const App: React.FC = () => {
     console.log("🚀 VERSION: SOLD_FEATURES_UPDATE_V3 (Final)"); // Marcador de versão para debug
     const loadData = async () => {
       try {
+        // 1. Carregamento Instantâneo (Cache Local) - Otimização de Performance
+        const localVehicles = db.getLocalVehicles();
+        const localSettings = db.getLocalSettings();
+
+        if (localVehicles.length > 0) {
+          console.log("⚡ Usando cache local para renderização instantânea");
+          setVehicles(localVehicles);
+          setSettings(localSettings);
+          setLoading(false); // Remove spinner imediatamente se houver dados
+        }
+
+        // 2. Busca dados atualizados no servidor (Background)
         // Limpeza de veículos antigos ao iniciar
         await db.cleanupOldSoldVehicles();
 
@@ -66,6 +78,8 @@ const App: React.FC = () => {
           db.getSettings(),
           logger.getVisitCount()
         ]);
+
+        // 3. Atualiza com a verdade do servidor
         setVehicles(vData);
         setSettings(sData);
         setVisitCount(vCount);
@@ -282,6 +296,20 @@ const App: React.FC = () => {
               onViewDetails={handleViewDetails}
               imageFit={settings.cardImageFit}
             />
+          )}
+
+          {/* ESTOQUE DE CARROS (Grid) */}
+          {(carrosEstoque.length > 0) && (filter === 'TUDO' || filter === 'CARROS') && (
+            <>
+              <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(255,215,0,0.3)]"></div>
+              <StockGrid
+                title="Estoque de Carros"
+                vehicles={carrosEstoque}
+                onInterest={handleInterest}
+                onViewDetails={handleViewDetails}
+                imageFit={settings.cardImageFit}
+              />
+            </>
           )}
 
           {/* SEÇÃO DE VENDIDOS (NOVA) - AGORA VISÍVEL EM TODAS AS ABAS E ORDENADA POR DATA DA VENDA */}

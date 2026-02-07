@@ -7,6 +7,11 @@ class VehicleService {
   private settingsKey = 'rei_das_motos_settings_v2';
 
   // Buscar todos os veículos
+  // Método público para acesso instantâneo ao cache
+  getLocalVehicles(): Vehicle[] {
+    return this.getFallbackVehicles();
+  }
+
   async getAllVehicles(): Promise<Vehicle[]> {
     try {
       const { data, error } = await supabase
@@ -263,6 +268,10 @@ class VehicleService {
   }
 
   // Buscar configurações
+  getLocalSettings(): AppSettings {
+    return this.getFallbackSettings();
+  }
+
   async getSettings(): Promise<AppSettings> {
     try {
       const { data, error } = await supabase
