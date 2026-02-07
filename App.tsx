@@ -450,7 +450,15 @@ const App: React.FC = () => {
                     key={idx}
                     onClick={() => {
                       const link = `${window.location.origin}?v=${whatsappTarget.id}`;
-                      const message = encodeURIComponent(`Olá! Vi no catálogo o veículo: ${whatsappTarget.name}.\nAinda está disponível?\nLink: ${link}`);
+                      const message = encodeURIComponent(
+                        `Olá! Tenho interesse neste veículo:\n\n` +
+                        `🚘 *${whatsappTarget.name}*\n` +
+                        `📅 Ano: ${whatsappTarget.year || 'N/A'}\n` +
+                        `💰 Valor: ${typeof whatsappTarget.price === 'number' ? 'R$ ' + whatsappTarget.price.toLocaleString('pt-BR') : whatsappTarget.price}\n` +
+                        `${whatsappTarget.plate_last3 ? `🔢 Placa Final: ${whatsappTarget.plate_last3}\n` : ''}` +
+                        `\n📸 Foto: ${whatsappTarget.imageUrl}\n\n` +
+                        `🔗 Link do Catálogo: ${link}`
+                      );
                       window.open(`https://api.whatsapp.com/send?phone=${finalNum}&text=${message}`, '_blank');
                       setShowWhatsappModal(false);
                     }}
