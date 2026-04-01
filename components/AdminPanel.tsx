@@ -113,9 +113,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const loadLeads = async () => {
     try {
-      console.log("🔄 Carregando leads... User:", user);
       const data = await db.getNewsletterSubscriptions();
-      console.log("✅ Leads carregados:", data);
       setLeads(data);
     } catch (err) {
       console.error("❌ Erro ao carregar leads:", err);

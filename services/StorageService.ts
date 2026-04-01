@@ -2,10 +2,31 @@ import { supabase } from './supabase';
 
 export class StorageService {
     private bucketName = 'vehicle-media';
+    private imgbbApiKey = '60f1ca468011001f22cd619fe685f046';
 
     // Upload de arquivo (imagem ou vídeo)
     async uploadFile(file: File, folder: 'images' | 'videos'): Promise<{ url: string | null; error: Error | null }> {
         try {
+            // Se for imagem, usar ImgBB para economizar banda do Supabase!
+            if (file.type.startsWith('image/')) {
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${this.imgbbApiKey}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    return { url: data.data.url, error: null };
+                } else {
+                    throw new Error(data.error?.message || 'Erro ao fazer upload para ImgBB');
+                }
+            }
+
+            // Se for VÍDEO (ImgBB não suporta), continua enviando pro Supabase
             const fileExt = file.name.split('.').pop();
             const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
@@ -45,10 +66,16 @@ export class StorageService {
     // Deletar arquivo
     async deleteFile(fileUrl: string): Promise<{ error: Error | null }> {
         try {
-            // Extrair o path do arquivo da URL
+            // ImgBB não permite deleção simples via API sem o Delete Token de cada imagem
+            // (Apenas ignoramos a deleção no ImgBB, as imagens ficam órfãs mas sem custo pra você)
+            if (fileUrl.includes('imgbb') || fileUrl.includes('i.ibb.co')) {
+                return { error: null };
+            }
+
+            // Extrair o path do arquivo da URL do Supabase
             const urlParts = fileUrl.split(`/${this.bucketName}/`);
             if (urlParts.length < 2) {
-                throw new Error('URL inválida');
+                return { error: null };
             }
 
             const filePath = urlParts[1];
