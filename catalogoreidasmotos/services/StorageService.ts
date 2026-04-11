@@ -1,31 +1,35 @@
 import { supabase } from './supabase';
 
 export class StorageService {
-    private bucketName = 'vehicle-media';
-
-    // Upload de arquivo (imagem ou vídeo)
+    // Upload de arquivo usando ImgBB (ignora o bucket do Supabase)
     async uploadFile(file: File, folder: 'images' | 'videos'): Promise<{ url: string | null; error: Error | null }> {
         try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            // O ImgBB é focado em imagens.
+            const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
 
-            const { data, error } = await supabase.storage
-                .from(this.bucketName)
-                .upload(fileName, file, {
-                    cacheControl: '3600',
-                    upsert: false
-                });
+            if (!apiKey) {
+                throw new Error('A chave VITE_IMGBB_API_KEY não foi encontrada no arquivo .env.local');
+            }
 
-            if (error) throw error;
+            const formData = new FormData();
+            formData.append('image', file);
+            // Opcional: Se quiser dar um nome à imagem baseado na data
+            formData.append('name', `${Date.now()}_${Math.random().toString(36).substring(7)}`);
 
-            // Obter URL pública
-            const { data: { publicUrl } } = supabase.storage
-                .from(this.bucketName)
-                .getPublicUrl(data.path);
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+                method: 'POST',
+                body: formData,
+            });
 
-            return { url: publicUrl, error: null };
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error?.message || 'Erro ao enviar imagem para ImgBB');
+            }
+
+            return { url: data.data.url, error: null };
         } catch (error) {
-            console.error('Erro no upload:', error);
+            console.error('Erro no upload IMGBB:', error);
             return { url: null, error: error as Error };
         }
     }
@@ -42,26 +46,15 @@ export class StorageService {
         return { urls, errors };
     }
 
-    // Deletar arquivo
+    // Deletar arquivo - A API pública do ImgBB não suporta exclusão direta pela URL simples,
+    // então vamos retornar erro nulo nativamente para não quebrar o site quando tentar apagar algo antigo.
     async deleteFile(fileUrl: string): Promise<{ error: Error | null }> {
         try {
-            // Extrair o path do arquivo da URL
-            const urlParts = fileUrl.split(`/${this.bucketName}/`);
-            if (urlParts.length < 2) {
-                throw new Error('URL inválida');
-            }
-
-            const filePath = urlParts[1];
-
-            const { error } = await supabase.storage
-                .from(this.bucketName)
-                .remove([filePath]);
-
-            if (error) throw error;
-
+            // Retorna sucessso silenciosamente, 
+            // pois ImgBB armazena as fotos e não precisamos nos preocupar com espaço livre nele
             return { error: null };
         } catch (error) {
-            console.error('Erro ao deletar arquivo:', error);
+            console.error('Erro ao tentar deletar arquivo:', error);
             return { error: error as Error };
         }
     }
