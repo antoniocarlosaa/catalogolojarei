@@ -265,11 +265,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     } else {
       setCurrentVideos(prev => prev.filter((_, i) => i !== index));
     }
-  };
-
-  // Função auxiliar para upload usando ImgBB em vez de Supabase Storage
+  // Revertido para ImgBB por exigência (Para evitar limites de quota no Supabase Storage)
   const uploadFileToStorage = async (file: File): Promise<string> => {
-    // Agora enviamos via ImgBB
+    // Usar o StorageService que contém a lógica do ImgBB integrada
     const result = await storageService.uploadFile(file, 'images');
     if (result.error || !result.url) {
       throw result.error || new Error("Falha ao subir imagem para ImgBB");
