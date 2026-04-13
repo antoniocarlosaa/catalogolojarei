@@ -1,26 +1,14 @@
 import { supabase } from './supabase';
 
 export class StorageService {
-    private bucketName = 'vehicle-media';
-    private imgbbApiKey = '60f1ca468011001f22cd619fe685f046';
-
-    // Upload de arquivo (imagem ou vídeo)
+    // Upload de arquivo usando ImgBB (ignora totalmente o bucket do Supabase)
     async uploadFile(file: File, folder: 'images' | 'videos'): Promise<{ url: string | null; error: Error | null }> {
         try {
-            // Se for imagem, usar ImgBB para economizar banda do Supabase!
-            if (file.type.startsWith('image/')) {
-                const formData = new FormData();
-                formData.append('image', file);
-                
-                const response = await fetch(`https://api.imgbb.com/1/upload?key=${this.imgbbApiKey}`, {
-                    method: 'POST',
-                    body: formData
-                });
             // O ImgBB é focado em imagens.
             const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
-            
+
             if (!apiKey) {
-                 throw new Error('A chave VITE_IMGBB_API_KEY não foi encontrada no arquivo .env.local');
+                throw new Error('A chave VITE_IMGBB_API_KEY não foi encontrada no arquivo .env.local');
             }
 
             const formData = new FormData();
@@ -42,6 +30,7 @@ export class StorageService {
             return { url: data.data.url, error: null };
         } catch (error) {
             console.error('Erro no upload IMGBB:', error);
+            // Em caso de API quebrada e o usuário tentar mandar vídeos, apenas não falhe
             return { url: null, error: error as Error };
         }
     }

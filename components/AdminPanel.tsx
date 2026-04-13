@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { logger, AccessLog, AuditLog } from '../services/LogService';
 import { db } from '../services/VehicleService';
 import { supabase } from '../services/supabase';
+import { storageService } from '../services/StorageService';
 
 
 interface AdminPanelProps {
@@ -266,23 +267,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
-  // Função auxiliar para upload seguro
+  // Função auxiliar para upload usando ImgBB em vez de Supabase Storage
   const uploadFileToStorage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('vehicle-media')
-      .upload(filePath, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data } = supabase.storage
-      .from('vehicle-media')
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
+    // Agora enviamos via ImgBB
+    const result = await storageService.uploadFile(file, 'images');
+    if (result.error || !result.url) {
+      throw result.error || new Error("Falha ao subir imagem para ImgBB");
+    }
+    return result.url;
   };
 
   const uuidv4 = () => {
@@ -773,8 +765,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <button
                 onClick={async () => {
                   try {
+                    // Limpar valores vazios ou apenas com "OFF:" para não sujar o banco
+                    const validNumbers = numbers.filter(n => n.replace('OFF:', '').trim() !== '');
+                    
                     await onSaveSettings({
-                      whatsappNumbers: numbers.filter(n => n.trim() !== ''),
+                      whatsappNumbers: validNumbers,
                       googleMapsUrl: mapsUrl,
                       backgroundImageUrl: backgroundImageUrl,
                       backgroundPosition: backgroundPos,
