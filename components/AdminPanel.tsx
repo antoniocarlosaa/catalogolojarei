@@ -765,11 +765,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <button
                 onClick={async () => {
                   try {
-                    // Limpar valores vazios ou apenas com "OFF:" para não sujar o banco
-                    const validNumbers = numbers.filter(n => n.replace('OFF:', '').trim() !== '');
-                    
+                    // Remover o filtro para salvar todos os 10 slots exatamente como estão. 
+                    // Isso manterá os vazios ou "OFF:" nas posições corretas e impedirá o visual de inverter.
                     await onSaveSettings({
-                      whatsappNumbers: validNumbers,
+                      whatsappNumbers: numbers,
                       googleMapsUrl: mapsUrl,
                       backgroundImageUrl: backgroundImageUrl,
                       backgroundPosition: backgroundPos,
