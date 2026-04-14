@@ -265,6 +265,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     } else {
       setCurrentVideos(prev => prev.filter((_, i) => i !== index));
     }
+  };
   // Revertido para ImgBB por exigência (Para evitar limites de quota no Supabase Storage)
   const uploadFileToStorage = async (file: File): Promise<string> => {
     // Usar o StorageService que contém a lógica do ImgBB integrada
