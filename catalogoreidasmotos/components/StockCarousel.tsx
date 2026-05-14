@@ -5,9 +5,10 @@ import VehicleCard from './VehicleCard';
 interface StockCarouselProps {
   title: string;
   vehicles: Vehicle[];
-  onInterest: (vehicle: Vehicle) => void;
+  onInterest: (vehicle: Vehicle, action?: 'buy'|'finance') => void;
   onViewDetails: (vehicle: Vehicle) => void;
   imageFit?: 'cover' | 'contain';
+  variant?: 'default' | 'promo' | 'featured' | 'hero';
 }
 
 const StockCarousel: React.FC<StockCarouselProps> = ({ title, vehicles, onInterest, onViewDetails, imageFit }) => {

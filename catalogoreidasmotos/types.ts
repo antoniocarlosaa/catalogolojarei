@@ -49,4 +49,9 @@ export interface AppSettings {
   backgroundImageUrl?: string;
   backgroundPosition?: string; // e.g. "50% 50%"
   cardImageFit?: 'cover' | 'contain';
+  // Configurações do Pop-up
+  promoActive?: boolean;
+  promoImageUrl?: string;
+  promoLink?: string;
+  promoText?: string;
 }

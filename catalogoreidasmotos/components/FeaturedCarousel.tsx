@@ -43,7 +43,7 @@ const FeaturedCarousel: React.FC<FeaturedCarouselProps> = ({ vehicles, onInteres
 
             {/* Card Central */}
             <div className="relative mx-4 sm:mx-8 w-full max-w-2xl">
-                <div className="relative bg-black/80 backdrop-blur-md border border-gold/30 rounded-full p-2 flex items-center gap-6 overflow-hidden pr-8 shadow-[0_0_30px_rgba(255,215,0,0.1)]">
+                <div className="relative bg-black/80 backdrop-blur-md border border-gold/30 rounded-full p-2 flex items-center gap-6 overflow-hidden pr-8 shadow-[0_0_30px_rgba(34,197,94,0.1)]">
 
                     {/* Imagem Circular */}
                     <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-2 border-gold/20 overflow-hidden shrink-0 relative">

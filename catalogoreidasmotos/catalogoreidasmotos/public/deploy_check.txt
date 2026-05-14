@@ -1,4 +1,0 @@
-DEPLOYMENT_CHECK_V4
-Timestamp: 2026-01-29_FINAL
-If you see this file, the deployment IS successful.
-The "V3.1 RED" marker should also be visible on the homepage.

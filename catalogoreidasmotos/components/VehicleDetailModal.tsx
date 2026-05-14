@@ -5,7 +5,7 @@ import ImageLightbox from './ImageLightbox';
 interface VehicleDetailModalProps {
     vehicle: Vehicle;
     onClose: () => void;
-    onInterest: (vehicle: Vehicle) => void;
+    onInterest: (vehicle: Vehicle, action?: 'buy'|'finance') => void;
 }
 
 const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClose, onInterest }) => {
@@ -94,9 +94,9 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                     <div className="mb-8">
                         {/* Sold Banner */}
                         {vehicle.isSold && (
-                            <div className="w-full bg-red-600/20 border border-red-500/50 rounded-xl p-4 mb-6 flex flex-col items-center justify-center text-center animate-pulse">
-                                <span className="text-red-500 font-heading text-2xl uppercase tracking-widest font-bold">VENDIDO</span>
-                                <span className="text-red-400/80 text-[10px] uppercase tracking-wide font-bold mt-1">Este veículo já foi entregue</span>
+                            <div className="w-full bg-redAlert/20 border border-redAlert/50 rounded-xl p-4 mb-6 flex flex-col items-center justify-center text-center animate-pulse">
+                                <span className="text-redAlert font-heading text-2xl uppercase tracking-widest font-black">VENDIDO</span>
+                                <span className="text-redAlert/80 text-xs uppercase tracking-wide font-bold mt-1">Mais uma realização Rei das Motos</span>
                             </div>
                         )}
 
@@ -180,13 +180,31 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                         )}
                     </div>
 
-                    <button
-                        onClick={() => !vehicle.isSold && onInterest(vehicle)}
-                        disabled={vehicle.isSold}
-                        className={`w-full py-2 ${vehicle.isSold ? 'bg-red-900/50 cursor-not-allowed opacity-50' : 'bg-[#25D366] hover:bg-[#128C7E] animate-pulse hover:animate-none shadow-[0_0_20px_rgba(37,211,102,0.3)] hover:shadow-[0_0_30px_rgba(37,211,102,0.5)]'} text-white active:scale-95 transition-all rounded-xl flex items-center justify-center gap-3 group`}
-                    >
-                        <span className="text-base font-bold uppercase tracking-wider">{vehicle.isSold ? 'Veículo Indisponível' : 'Whatsapp'}</span>
-                    </button>
+                    {vehicle.isSold ? (
+                        <button
+                            disabled
+                            className={`w-full py-4 bg-white/5 cursor-not-allowed opacity-50 text-white font-bold uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 border border-white/10`}
+                        >
+                            <span>Veículo Indisponível</span>
+                        </button>
+                    ) : (
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => onInterest(vehicle, 'buy')}
+                                className="w-full py-4 bg-gold hover:bg-gold-light text-black font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:shadow-[0_0_30px_rgba(234,179,8,0.5)] transition-all active:scale-95"
+                            >
+                                <span>Quero essa</span>
+                                <span className="material-symbols-outlined">check_circle</span>
+                            </button>
+                            <button
+                                onClick={() => onInterest(vehicle, 'finance')}
+                                className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-bold uppercase tracking-wider rounded-xl flex items-center justify-center gap-3 border border-white/10 transition-all active:scale-95"
+                            >
+                                <span>Simular parcela</span>
+                                <span className="material-symbols-outlined">calculate</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

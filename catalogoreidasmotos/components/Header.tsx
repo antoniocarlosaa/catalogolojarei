@@ -5,9 +5,10 @@ interface HeaderProps {
     filter: CategoryFilter;
     setFilter: (filter: CategoryFilter) => void;
     onAdminClick: () => void;
+    onNewsletterClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick }) => {
+const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick, onNewsletterClick }) => {
     const [isScrolled, setIsScrolled] = useState(false);
 
     useEffect(() => {
@@ -26,7 +27,7 @@ const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick }) => {
             {/* TOP TITLE BAR */}
             <div className="w-full text-center py-2 border-b border-white/10 bg-black/40 backdrop-blur-md">
                 <h2 className="text-sm md:text-lg font-heading text-white font-bold tracking-widest uppercase drop-shadow-md">
-                    Encontre seu <span className="text-gold">Veículo dos Sonhos</span>
+                    Sua próxima moto está na <span className="text-gold">Rei das Motos</span>
                 </h2>
             </div>
 
@@ -47,8 +48,8 @@ const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick }) => {
                     </button>
 
                     {/* LOGO */}
-                    <h1 className="text-2xl font-bold italic tracking-tighter text-white cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                        REI DAS <span className="text-gold">MOTOS</span>
+                    <h1 className="text-2xl font-bold italic tracking-tighter text-gold cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                        Rei das Motos
                     </h1>
                 </div>
 
@@ -64,10 +65,33 @@ const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick }) => {
                             {cat}
                         </button>
                     ))}
+                    <button
+                        onClick={onNewsletterClick}
+                        className="relative flex items-center gap-2 px-5 py-2 rounded-full bg-gold text-black transition-all text-xs font-bold uppercase tracking-widest hover:scale-105 shadow-[0_0_15px_rgba(34,197,94,0.6)] animate-pulse"
+                    >
+                        <span className="material-symbols-outlined text-sm">notifications_active</span>
+                        <span>Alerta de Estoque</span>
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                    </button>
                 </nav>
 
                 {/* MOBILE MENU & ADMIN */}
                 <div className="flex items-center gap-4">
+                    <button
+                        onClick={onNewsletterClick}
+                        className="md:hidden w-10 h-10 flex items-center justify-center text-gold hover:text-white transition-colors rounded-full hover:bg-white/10 relative"
+                        title="Alerta de Estoque"
+                    >
+                        <span className="material-symbols-outlined animate-bounce">notifications_active</span>
+                        <span className="absolute top-2 right-2 flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                        </span>
+                    </button>
+
                     <button
                         onClick={onAdminClick}
                         className="w-10 h-10 flex items-center justify-center text-white/80 hover:text-gold transition-colors rounded-full hover:bg-white/10"
@@ -75,8 +99,6 @@ const Header: React.FC<HeaderProps> = ({ filter, setFilter, onAdminClick }) => {
                     >
                         <span className="material-symbols-outlined">settings</span>
                     </button>
-
-                    {/* Mobile Menu Toggle could go here (simplified for now to rely on layout) */}
                 </div>
             </div>
 

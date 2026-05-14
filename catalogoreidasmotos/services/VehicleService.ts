@@ -7,6 +7,11 @@ class VehicleService {
   private settingsKey = 'rei_das_motos_settings_v2';
 
   // Buscar todos os veículos
+  // Método público para acesso instantâneo ao cache
+  getLocalVehicles(): Vehicle[] {
+    return this.getFallbackVehicles();
+  }
+
   async getAllVehicles(): Promise<Vehicle[]> {
     try {
       const { data, error } = await supabase
@@ -263,6 +268,10 @@ class VehicleService {
   }
 
   // Buscar configurações
+  getLocalSettings(): AppSettings {
+    return this.getFallbackSettings();
+  }
+
   async getSettings(): Promise<AppSettings> {
     try {
       const { data, error } = await supabase
@@ -284,6 +293,10 @@ class VehicleService {
         backgroundImageUrl: data?.background_image_url || local.backgroundImageUrl || '',
         backgroundPosition: data?.background_position || local.backgroundPosition || '50% 50%',
         cardImageFit: data?.card_image_fit || local.cardImageFit || 'cover',
+        promoActive: data?.promo_active ?? local.promoActive ?? false,
+        promoImageUrl: data?.promo_image_url || local.promoImageUrl || '',
+        promoLink: data?.promo_link || local.promoLink || '',
+        promoText: data?.promo_text || local.promoText || '',
       };
     } catch (error) {
       console.error('Erro ao conectar com Supabase, usando configurações locais:', error);
@@ -324,6 +337,10 @@ class VehicleService {
             background_image_url: settings.backgroundImageUrl,
             background_position: settings.backgroundPosition,
             card_image_fit: settings.cardImageFit,
+            promo_active: settings.promoActive,
+            promo_image_url: settings.promoImageUrl,
+            promo_link: settings.promoLink,
+            promo_text: settings.promoText,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existing.id)
@@ -343,6 +360,10 @@ class VehicleService {
             background_image_url: settings.backgroundImageUrl,
             background_position: settings.backgroundPosition,
             card_image_fit: settings.cardImageFit,
+            promo_active: settings.promoActive,
+            promo_image_url: settings.promoImageUrl,
+            promo_link: settings.promoLink,
+            promo_text: settings.promoText,
           }]);
 
         if (error) throw error;
@@ -351,6 +372,46 @@ class VehicleService {
       console.error('Erro ao salvar configurações no Supabase:', error);
       // RE-THROW erro para que o UI saiba que falhou no servidor
       throw error;
+    }
+  }
+  // Notificar assinantes (Stub)
+  async notifySubscribers(vehicle: Vehicle): Promise<void> {
+    // Em um cenário real, isso chamaria uma Edge Function ou API externa
+    // que leria a tabela 'newsletter_subscriptions' e dispararia mensagens.
+    console.log(`🔔 Stub: Notificando assinantes sobre o veículo: ${vehicle.name}`);
+    // Exemplo de integração futura:
+    // await supabase.functions.invoke('notify-new-vehicle', { body: { vehicle } });
+  }
+
+  // --- NEWSLETTER / LEADS ---
+
+  async getNewsletterSubscriptions(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('newsletter_subscriptions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar inscritos:', error);
+      return [];
+    }
+  }
+
+  async deleteNewsletterSubscription(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('newsletter_subscriptions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Erro ao deletar inscrito:', error);
+      return false;
     }
   }
 }

@@ -12,6 +12,8 @@ import HeroCard from './components/HeroCard';
 import ViewMoreCard from './components/ViewMoreCard';
 import AdminPanel from './components/AdminPanel';
 import LoginModal from './components/LoginModal';
+import PromoPopup from './components/PromoPopup';
+import NewsletterModal from './components/NewsletterModal';
 import { db } from './services/VehicleService';
 import { useAuth } from './contexts/AuthContext';
 import { logger } from './services/LogService';
@@ -27,11 +29,16 @@ const App: React.FC = () => {
   const [search, setSearch] = useState('');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showNewsletter, setShowNewsletter] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Promo State
+  const [isPromoDismissed, setIsPromoDismissed] = useState(false);
 
   // WhatsApp Selector State
   const [showWhatsappModal, setShowWhatsappModal] = useState(false);
   const [whatsappTarget, setWhatsappTarget] = useState<Vehicle | null>(null);
+  const [whatsappAction, setWhatsappAction] = useState<'buy'|'finance'|'general'>('buy');
 
   // Registrar Visita (apenas uma vez na montagem)
   useEffect(() => {
@@ -52,15 +59,28 @@ const App: React.FC = () => {
     console.log("🚀 VERSION: SOLD_FEATURES_UPDATE_V3 (Final)"); // Marcador de versão para debug
     const loadData = async () => {
       try {
+        // 1. Carregamento Instantâneo (Cache Local) - Otimização de Performance
+        const localVehicles = db.getLocalVehicles();
+        const localSettings = db.getLocalSettings();
+
+        if (localVehicles.length > 0) {
+          console.log("⚡ Usando cache local para renderização instantânea");
+          setVehicles(localVehicles);
+          setSettings(localSettings);
+          setLoading(false); // Remove spinner imediatamente se houver dados
+        }
+
+        // 2. Busca dados atualizados no servidor (Background)
         // Limpeza de veículos antigos ao iniciar
         await db.cleanupOldSoldVehicles();
-        console.log('Limpeza de veículos antigos efetuada.');
 
         const [vData, sData, vCount] = await Promise.all([
           db.getAllVehicles(),
           db.getSettings(),
           logger.getVisitCount()
         ]);
+
+        // 3. Atualiza com a verdade do servidor
         setVehicles(vData);
         setSettings(sData);
         setVisitCount(vCount);
@@ -137,7 +157,7 @@ const App: React.FC = () => {
   }, [filteredVehicles]);
 
 
-  const handleInterest = (vehicle: Vehicle) => {
+  const handleInterest = (vehicle: Vehicle, action: 'buy'|'finance'|'general' = 'buy') => {
     // Verificar se existem números ativos antes de abrir modal
     const activeExists = settings.whatsappNumbers.some(n => !n.startsWith('OFF:') && n.length > 5);
 
@@ -147,6 +167,7 @@ const App: React.FC = () => {
     }
 
     setWhatsappTarget(vehicle);
+    setWhatsappAction(action);
     setShowWhatsappModal(true);
   };
 
@@ -207,10 +228,12 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans relative">
+
       <Header
         filter={filter}
         setFilter={setFilter}
         onAdminClick={handleAdminClick}
+        onNewsletterClick={() => setShowNewsletter(true)}
       />
 
       <main className="flex-1 w-full pb-24">
@@ -220,6 +243,14 @@ const App: React.FC = () => {
           backgroundPosition={settings.backgroundPosition}
         />
         <SearchBar search={search} setSearch={setSearch} />
+
+        {/* URGENCY BANNER */}
+        <div className="w-full bg-redAlert text-white py-2 px-4 text-center">
+            <p className="text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                <span className="material-symbols-outlined text-base animate-pulse">campaign</span>
+                Estoque atualizado diariamente. Veículos podem ser vendidos a qualquer momento!
+            </p>
+        </div>
 
         <div className="max-w-[1400px] mx-auto space-y-4">
 
@@ -247,8 +278,26 @@ const App: React.FC = () => {
 
           {/* SEPARATOR */}
           {(motosEstoque.length > 0) && (
-            <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(255,215,0,0.3)]"></div>
+            <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(234,179,8,0.3)]"></div>
           )}
+
+          {/* SESSÃO DE RETORNO (MEIO) */}
+          <div className="w-full bg-surface-light border border-white/5 p-8 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 my-8">
+              <div>
+                  <h3 className="text-2xl font-heading text-white uppercase tracking-wider mb-2">Não encontrou sua moto ideal?</h3>
+                  <p className="text-white/70">Te ajudamos a encontrar a moto certa para a sua necessidade.</p>
+              </div>
+              <button 
+                  onClick={() => {
+                      setWhatsappTarget(vehicles[0]); // fallback
+                      setWhatsappAction('general');
+                      setShowWhatsappModal(true);
+                  }}
+                  className="px-8 py-4 bg-gold hover:bg-gold-light text-black font-bold uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(234,179,8,0.4)] hover:scale-105"
+              >
+                  Falar Agora
+              </button>
+          </div>
 
           {/* ÚLTIMOS LANÇAMENTOS (Carousel Mixed - AGORA INCLUI VENDIDOS) */}
           {(ultimosLancamentos.length > 0) && (filter === 'TUDO' || filter === 'MOTOS' || filter === 'CARROS') && (
@@ -263,7 +312,7 @@ const App: React.FC = () => {
 
           {/* SEPARATOR */}
           {(motosEstoque.length > 0) && (
-            <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(255,215,0,0.3)]"></div>
+            <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(234,179,8,0.3)]"></div>
           )}
 
           {/* ESTOQUE DE MOTOS (Grid) */}
@@ -277,10 +326,24 @@ const App: React.FC = () => {
             />
           )}
 
+          {/* ESTOQUE DE CARROS (Grid) */}
+          {(carrosEstoque.length > 0) && (filter === 'TUDO' || filter === 'CARROS') && (
+            <>
+              <div className="w-full h-px bg-white/10 my-8 shadow-[0_0_15px_rgba(234,179,8,0.3)]"></div>
+              <StockGrid
+                title="Estoque de Carros"
+                vehicles={carrosEstoque}
+                onInterest={handleInterest}
+                onViewDetails={handleViewDetails}
+                imageFit={settings.cardImageFit}
+              />
+            </>
+          )}
+
           {/* SEÇÃO DE VENDIDOS (NOVA) - AGORA VISÍVEL EM TODAS AS ABAS E ORDENADA POR DATA DA VENDA */}
           {(motosVendidas.length > 0) && (
             <>
-              <div className="w-full h-px bg-white/10 my-12 shadow-[0_0_30px_rgba(37,211,102,0.3)]"></div>
+              <div className="w-full h-px bg-white/10 my-12 shadow-[0_0_30px_rgba(234,179,8,0.3)]"></div>
               <StockCarousel
                 title="Veículos Vendidos"
                 vehicles={motosVendidas}
@@ -292,17 +355,86 @@ const App: React.FC = () => {
             </>
           )}
 
+          {/* PROVA SOCIAL */}
+          <div className="w-full bg-surface-light border border-white/5 p-8 rounded-2xl flex flex-col items-center justify-center my-12">
+              <h3 className="text-3xl font-heading text-white uppercase tracking-wider mb-8 text-center">Clientes que <span className="text-gold">realizaram sonhos</span></h3>
+              <div className="flex flex-wrap justify-center gap-8 mb-8 text-center">
+                  <div>
+                      <p className="text-5xl font-black text-gold mb-2">+1000</p>
+                      <p className="text-white/60 font-bold uppercase tracking-widest text-sm">Clientes Atendidos</p>
+                  </div>
+                  <div>
+                      <p className="text-5xl font-black text-gold mb-2">+500</p>
+                      <p className="text-white/60 font-bold uppercase tracking-widest text-sm">Motos Vendidas</p>
+                  </div>
+              </div>
+          </div>
+
+          {/* SESSÃO DE RETORNO (FINAL) */}
+          <div className="w-full bg-gold/10 border border-gold/30 p-8 rounded-2xl flex flex-col items-center justify-center text-center my-8">
+              <h3 className="text-2xl font-heading text-gold uppercase tracking-wider mb-2">Não encontrou o que procurava?</h3>
+              <p className="text-white/80 mb-6">Fale com um de nossos vendedores. Podemos ter a sua moto chegando no estoque hoje!</p>
+              <button 
+                  onClick={() => {
+                      setWhatsappTarget(vehicles[0]); // fallback
+                      setWhatsappAction('general');
+                      setShowWhatsappModal(true);
+                  }}
+                  className="px-10 py-4 bg-gold hover:bg-gold-light text-black font-bold uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(234,179,8,0.4)] hover:scale-105"
+              >
+                  Falar com Vendedor
+              </button>
+          </div>
+
         </div>
+
+        {/* PROMO POPUP - Renderizado aqui para garantir visibilidade */}
+        {!isPromoDismissed && settings.promoActive && (
+          <PromoPopup
+            imageUrl={settings.promoImageUrl || ''}
+            link={settings.promoLink}
+            text={settings.promoText}
+            onClose={() => setIsPromoDismissed(true)}
+          />
+        )}
       </main>
 
-      {/* Footer Discreto com Contador */}
-      <footer className="w-full py-6 text-center border-t border-white/5 mt-auto">
-        <div className="flex flex-col items-center justify-center gap-2 text-[10px] text-white/20 uppercase tracking-widest font-bold">
-          <span>Rei das Motos Luxury Catalog &copy; {new Date().getFullYear()}</span>
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 transition-colors cursor-default" title="Total de Visitas">
-            <span className="material-symbols-outlined text-xs">visibility</span>
-            <span>{visitCount.toLocaleString('pt-BR')} Visitas</span>
-          </div>
+      {/* Footer Profissional */}
+      <footer className="w-full py-12 text-center border-t border-white/10 bg-black mt-auto">
+        <div className="max-w-[1200px] mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="flex flex-col items-center md:items-start text-left">
+                <h1 className="text-2xl font-bold italic tracking-tighter text-white mb-4"><span className="text-gold">Rei das Motos</span></h1>
+                <p className="text-white/60 text-sm mb-4">A maior loja de motos populares e premium. Facilitamos a sua entrada e a sua vida.</p>
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 cursor-default w-fit" title="Total de Visitas">
+                    <span className="material-symbols-outlined text-xs text-gold">visibility</span>
+                    <span className="text-xs text-white/80">{visitCount.toLocaleString('pt-BR')} Visitas</span>
+                </div>
+            </div>
+            <div className="flex flex-col items-center md:items-start text-left">
+                <h4 className="text-gold font-bold uppercase tracking-widest mb-4">Contato</h4>
+                <div className="flex items-center gap-2 text-white/70 mb-2">
+                    <span className="material-symbols-outlined">phone_iphone</span>
+                    <span>WhatsApp Comercial</span>
+                </div>
+                <div className="flex items-center gap-2 text-white/70">
+                    <span className="material-symbols-outlined">photo_camera</span>
+                    <span>@reidasmotos</span>
+                </div>
+            </div>
+            <div className="flex flex-col items-center md:items-start text-left">
+                <h4 className="text-gold font-bold uppercase tracking-widest mb-4">Localização</h4>
+                <div className="flex items-start gap-2 text-white/70">
+                    <span className="material-symbols-outlined">location_on</span>
+                    <span>Rua Principal, 123<br/>Centro, Sua Cidade - UF</span>
+                </div>
+            </div>
+            <div className="flex flex-col items-center md:items-start text-left">
+                <h4 className="text-gold font-bold uppercase tracking-widest mb-4">Horário</h4>
+                <div className="flex items-start gap-2 text-white/70">
+                    <span className="material-symbols-outlined">schedule</span>
+                    <span>Seg a Sex: 08:00 às 18:00<br/>Sáb: 08:00 às 12:00</span>
+                </div>
+            </div>
         </div>
       </footer>
 
@@ -314,6 +446,10 @@ const App: React.FC = () => {
           currentBackgroundImageUrl={settings.backgroundImageUrl}
           currentBackgroundPosition={settings.backgroundPosition}
           currentCardImageFit={settings.cardImageFit}
+          currentPromoActive={settings.promoActive}
+          currentPromoImageUrl={settings.promoImageUrl}
+          currentPromoLink={settings.promoLink}
+          currentPromoText={settings.promoText}
           vehicles={vehicles}
           onSaveSettings={async (newSettings) => {
             setSettings(newSettings);
@@ -329,6 +465,9 @@ const App: React.FC = () => {
           onSaveBackgroundImageUrl={() => { }}
           onSaveBackgroundPosition={() => { }}
           onSaveCardImageFit={() => { }}
+          onSavePromoActive={() => { }}
+          onSavePromoImage={() => { }}
+          onSavePromoLink={() => { }}
           onUpdateVehicle={onUpdate}
           onDeleteVehicle={onDelete}
           onUpload={onUpload}
@@ -356,16 +495,33 @@ const App: React.FC = () => {
       )
       }
 
+      {showNewsletter && (
+        <NewsletterModal onClose={() => setShowNewsletter(false)} />
+      )}
+
       {/* Button Scroll Top */}
       {showScrollTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-[60] w-12 h-12 bg-gold text-black rounded-full shadow-2xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center border border-white/20"
+          className="fixed bottom-24 right-6 z-[60] w-12 h-12 bg-white/10 text-white rounded-full shadow-2xl hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center border border-white/20"
           aria-label="Voltar ao topo"
         >
           <span className="material-symbols-outlined">arrow_upward</span>
         </button>
       )}
+
+      {/* FIXED GLOBAL WHATSAPP BUTTON */}
+      <button
+        onClick={() => {
+            setWhatsappTarget(vehicles[0]); // fallback if no specific vehicle
+            setWhatsappAction('general');
+            setShowWhatsappModal(true);
+        }}
+        className="fixed bottom-6 right-6 z-[60] flex items-center gap-3 bg-[#25D366] text-white px-5 py-3 rounded-full shadow-[0_4px_14px_0_rgba(37,211,102,0.39)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.6)] hover:-translate-y-1 transition-all group"
+      >
+        <span className="material-symbols-outlined text-2xl group-hover:animate-bounce">chat</span>
+        <span className="font-bold uppercase tracking-wider text-sm hidden md:block">Falar Agora</span>
+      </button>
 
       {/* WHATSAPP SELECTOR MODAL */}
       {showWhatsappModal && whatsappTarget && (
@@ -393,8 +549,24 @@ const App: React.FC = () => {
                   <button
                     key={idx}
                     onClick={() => {
-                      const link = `${window.location.origin}?v=${whatsappTarget.id}`;
-                      const message = encodeURIComponent(`Olá! Vi no catálogo o veículo: ${whatsappTarget.name}.\nAinda está disponível?\nLink: ${link}`);
+                      const link = `${window.location.origin}${whatsappTarget?.id ? `?v=${whatsappTarget.id}` : ''}`;
+                      let message = '';
+                      if (whatsappAction === 'buy') {
+                          message = encodeURIComponent(
+                            `Olá! Tenho interesse nessa moto: *${whatsappTarget?.name || 'Veículo'}*\n\n` +
+                            `🔗 Link: ${link}`
+                          );
+                      } else if (whatsappAction === 'finance') {
+                          message = encodeURIComponent(
+                              `Olá! Quero simular parcela dessa moto: *${whatsappTarget?.name || 'Veículo'}*\n\n` +
+                              `🔗 Link: ${link}`
+                          );
+                      } else {
+                          message = encodeURIComponent(
+                              `Olá! Vim pelo catálogo e gostaria de tirar algumas dúvidas.\n\n` +
+                              `🔗 Link: ${link}`
+                          );
+                      }
                       window.open(`https://api.whatsapp.com/send?phone=${finalNum}&text=${message}`, '_blank');
                       setShowWhatsappModal(false);
                     }}

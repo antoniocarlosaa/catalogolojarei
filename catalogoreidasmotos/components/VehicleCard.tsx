@@ -4,7 +4,7 @@ import { Vehicle, VehicleType } from '../types';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
-  onInterest: (vehicle: Vehicle) => void;
+  onInterest: (vehicle: Vehicle, action?: 'buy'|'finance') => void;
   onClick?: () => void;
   variant?: 'default' | 'promo' | 'featured' | 'hero';
   imageFit?: 'cover' | 'contain';
@@ -31,7 +31,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
 
   return (
     <div
-      className={`relative bg-[#0d0d0d] rounded-xl overflow-hidden border border-white/5 group transition-all duration-300 hover:border-gold/30 flex flex-col h-full ${vehicle.isSold ? '' : ''} ${vehicle.isSold ? 'border-green-500/20' : ''}`}
+      className={`relative bg-[#0d0d0d] rounded-xl overflow-hidden border border-white/5 group transition-all duration-300 hover:border-gold/50 flex flex-col h-full ${vehicle.isSold ? 'opacity-80' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => { setIsHovered(false); setZoomStyle({ transformOrigin: 'center center', scale: '1' }); }}
@@ -107,8 +107,9 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
 
         {/* Sold Badge */}
         {vehicle.isSold && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20 pointer-events-none">
-            <span className="border border-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white rounded-full bg-red-900/80">VENDIDO</span>
+          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20 pointer-events-none p-4 text-center">
+            <span className="border-2 border-redAlert px-4 py-2 text-sm font-black uppercase tracking-widest text-redAlert rounded-lg bg-black/50 mb-2 rotate-[-10deg]">VENDIDO</span>
+            <span className="text-white font-medium text-xs">Mais uma realização Rei das Motos</span>
           </div>
         )}
         {/* Mileage Badges (Moved to Image Overlay) */}
@@ -119,22 +120,22 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
           </div>
         )}
 
-        <div className="absolute top-3 left-3 flex flex-col gap-2 z-20">
-          {vehicle.isFeatured && (
-            <div className="self-start px-3 py-1 bg-gold text-black text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">
-              Destaque
-            </div>
-          )}
-          {(vehicle.isPromoSemana || vehicle.isPromoMes) && (
-            <div className="self-start px-3 py-1 bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">
-              Promoção
-            </div>
-          )}
-          {vehicle.isZeroKm && (
-            <div className="self-start px-3 py-1 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">
-              0 KM
-            </div>
-          )}
+        <div className="absolute top-3 right-3 flex flex-col gap-2 z-20 items-end">
+            {vehicle.isFeatured && (
+                <div className="px-3 py-1 bg-gold text-black text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">🔥 Muito procurada</div>
+            )}
+            {vehicle.type === VehicleType.MOTO && vehicle.displacement && parseInt(vehicle.displacement) <= 160 && (
+                <div className="px-3 py-1 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">🚀 Ótima p/ delivery</div>
+            )}
+            {vehicle.km !== undefined && vehicle.km > 0 && vehicle.km < 15000 && (
+                <div className="px-3 py-1 bg-purple-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">💎 Baixa KM</div>
+            )}
+            {vehicle.type === VehicleType.MOTO && vehicle.displacement && parseInt(vehicle.displacement) <= 125 && (
+                <div className="px-3 py-1 bg-green-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">⚡ Econômica</div>
+            )}
+            {vehicle.category?.toLowerCase().includes('street') && (
+                <div className="px-3 py-1 bg-orange-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">💼 Ideal p/ trabalho</div>
+            )}
         </div>
 
       </div>
@@ -148,20 +149,34 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
           </h4>
 
           {/* Details Row - Cleaned up */}
-          <div className="flex items-center gap-2 text-[10px] text-white/60 font-medium uppercase tracking-wider mb-auto">
-            <span className="whitespace-nowrap">{vehicle.year || '-'}</span>
-            <span className="w-1 h-1 bg-white/20 rounded-full flex-shrink-0"></span>
-            <span className="whitespace-nowrap">{
-              vehicle.km === undefined ? '-' :
-                vehicle.km <= 0 ? '0 KM' :
-                  vehicle.km <= 10 ? 'SEMI NOVA' :
-                    vehicle.km < 20 ? 'KM BAIXO' :
+          <div className="flex items-center gap-3 text-[10px] text-gold font-bold uppercase tracking-wider mb-auto">
+            {/* Ano com cor destacada */}
+            <span className="text-gold font-bold">{vehicle.year || '-'}</span>
+
+            <span className="w-px h-3 bg-gold/30 flex-shrink-0"></span>
+
+            {/* Cilindrada com cor destacada (se houver) */}
+            {vehicle.displacement && (
+              <>
+                <span className="text-gold font-bold">{vehicle.displacement} CC</span>
+                <span className="w-px h-3 bg-gold/30 flex-shrink-0"></span>
+              </>
+            )}
+
+            {/* KM com Ícone */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="material-symbols-outlined text-[14px]">speed</span>
+              <span className="truncate">{
+                vehicle.km === undefined ? '-' :
+                  vehicle.km <= 0 ? '0 KM' :
+                    vehicle.km <= 10 ? '0 KM' :
                       `${vehicle.km.toLocaleString('pt-BR')} KM`
-            }</span>
+              }</span>
+            </div>
           </div>
 
           {/* Cod & Placa Section */}
-          <div className="flex items-center justify-between text-[9px] text-white/40 font-monouppercase tracking-wider mt-1 border-t border-white/5 pt-1">
+          <div className="flex items-center justify-between text-[9px] text-gold/70 font-mono uppercase tracking-wider mt-1 border-t border-gold/10 pt-1">
             {vehicle.plate_last3 && (
               <span title={`Final Placa: ${vehicle.plate_last3}`}>PLACA: {vehicle.plate_last3}</span>
             )}
@@ -170,7 +185,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
           {/* Category/Specs below detail row if needed, or just keep it simple. User wanted order. */}
           {/* Let's put category on its own line if it exists to avoid wrapping weirdness with the dots */}
           {(vehicle.category || vehicle.specs) && (
-            <div className="text-[9px] text-white/40 font-medium uppercase tracking-widest truncate mb-2 mt-1">
+            <div className="text-[9px] text-gold/70 font-medium uppercase tracking-widest truncate mb-2 mt-1">
               {vehicle.category || (vehicle.specs ? vehicle.specs.split('|').filter(s => {
                 const upper = s.trim().toUpperCase();
                 return !upper.startsWith('COR:') && !upper.startsWith('ANO:') && !upper.startsWith('KM:') && !upper.startsWith('[KM') && !upper.startsWith('SEMI NOVA') && !upper.startsWith('ZERO KM');
@@ -180,7 +195,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
 
 
           <div className="mt-2 pt-2 border-t border-white/5">
-            <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">A partir de</p>
+            <p className="text-gold/60 text-[9px] font-bold uppercase tracking-widest">A partir de</p>
             <p className="text-white font-bold text-lg leading-tight">
               {typeof vehicle.price === 'number' ? `R$ ${vehicle.price.toLocaleString('pt-BR')}` : vehicle.price}
             </p>
@@ -199,48 +214,39 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
               <span className="material-symbols-outlined text-base group-hover/btn:translate-x-1 transition-transform">visibility</span>
             </button>
 
-            <div className="mt-3 pt-3 border-t border-white/5 flex gap-2">
-              {/* WhatsApp */}
+            <div className="mt-2 pt-3 flex flex-col gap-2">
               {vehicle.isSold ? (
                 <button
                   disabled
-                  className="flex-1 py-2 bg-red-500/20 text-red-500 font-bold rounded-full flex items-center justify-center gap-2 cursor-not-allowed border border-red-500/20"
+                  className="w-full py-3 bg-white/5 text-white/50 font-bold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed border border-white/10"
                 >
                   <span className="text-xs font-bold tracking-wide uppercase">VENDIDO</span>
                 </button>
               ) : (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onInterest(vehicle);
-                  }}
-                  className="flex-1 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold transition-all rounded-full flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(37,211,102,0.39)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.23)] hover:-translate-y-0.5 active:scale-95"
-                >
-                  <span className="text-xs font-bold tracking-wide uppercase">WhatsApp</span>
-                </button>
+                <>
+                    <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onInterest(vehicle, 'buy');
+                    }}
+                    className="w-full py-3 bg-gold hover:bg-gold-light text-black font-black transition-all rounded-xl flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(234,179,8,0.39)] hover:shadow-[0_6px_20px_rgba(234,179,8,0.6)] hover:-translate-y-0.5 active:scale-95"
+                    >
+                    <span className="text-sm font-black tracking-wider uppercase">Quero essa</span>
+                    <span className="material-symbols-outlined text-lg">check_circle</span>
+                    </button>
+                    
+                    <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onInterest(vehicle, 'finance');
+                    }}
+                    className="w-full py-2 bg-white/5 hover:bg-white/10 text-white font-bold transition-all rounded-xl flex items-center justify-center gap-2 border border-white/10 active:scale-95"
+                    >
+                    <span className="text-xs font-bold tracking-wide uppercase">Simular parcela</span>
+                    <span className="material-symbols-outlined text-sm">calculate</span>
+                    </button>
+                </>
               )}
-
-              {/* Share Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const url = `${window.location.origin}?v=${vehicle.id}`;
-                  if (navigator.share) {
-                    navigator.share({
-                      title: vehicle.name,
-                      text: `Confira este veículo: ${vehicle.name}`,
-                      url: url
-                    }).catch(console.error);
-                  } else {
-                    navigator.clipboard.writeText(url);
-                    alert('Link copiado!');
-                  }
-                }}
-                className="w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all hover:-translate-y-0.5 active:scale-95"
-                title="Compartilhar"
-              >
-                <span className="material-symbols-outlined text-sm">share</span>
-              </button>
             </div>
           </div>
         </div>

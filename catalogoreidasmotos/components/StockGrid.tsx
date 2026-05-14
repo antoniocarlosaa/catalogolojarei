@@ -5,7 +5,7 @@ import VehicleCard from './VehicleCard';
 interface StockGridProps {
     title: string;
     vehicles: Vehicle[];
-    onInterest: (vehicle: Vehicle) => void;
+    onInterest: (vehicle: Vehicle, action?: 'buy'|'finance') => void;
     onViewDetails: (vehicle: Vehicle) => void;
     imageFit?: 'cover' | 'contain';
 }

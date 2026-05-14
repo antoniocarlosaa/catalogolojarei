@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Vehicle, VehicleType, AppSettings } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { logger, AccessLog, AuditLog } from '../services/LogService';
+import { db } from '../services/VehicleService';
 import { supabase } from '../services/supabase';
 
 
@@ -11,6 +12,11 @@ interface AdminPanelProps {
   currentBackgroundImageUrl?: string;
   currentBackgroundPosition?: string;
   currentCardImageFit?: 'cover' | 'contain';
+  // Promo
+  currentPromoActive?: boolean;
+  currentPromoImageUrl?: string;
+  currentPromoLink?: string;
+  currentPromoText?: string;
   vehicles: Vehicle[];
   onSaveSettings: (settings: AppSettings) => Promise<void>;
   onSaveNumbers: (numbers: string[]) => void;
@@ -18,6 +24,10 @@ interface AdminPanelProps {
   onSaveBackgroundImageUrl: (url: string) => void;
   onSaveBackgroundPosition: (pos: string) => void;
   onSaveCardImageFit: (fit: 'cover' | 'contain') => void;
+  // Promo
+  onSavePromoActive: (active: boolean) => void;
+  onSavePromoImage: (url: string) => void;
+  onSavePromoLink: (url: string) => void;
   onUpdateVehicle: (id: string, updates: Partial<Vehicle>) => void;
   onDeleteVehicle: (id: string) => void;
   onUpload: (vehicle: Vehicle) => Promise<void>;
@@ -30,6 +40,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   currentBackgroundImageUrl,
   currentBackgroundPosition,
   currentCardImageFit,
+  // Promo Props
+  currentPromoActive,
+  currentPromoImageUrl,
+  currentPromoLink,
+  currentPromoText,
   vehicles,
   onSaveSettings,
   onSaveNumbers,
@@ -37,13 +52,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   onSaveBackgroundImageUrl,
   onSaveBackgroundPosition,
   onSaveCardImageFit,
+  onSavePromoActive,
+  onSavePromoImage,
+  onSavePromoLink,
   onUpdateVehicle,
   onDeleteVehicle,
   onUpload,
   onClose
 }) => {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'inventory' | 'upload' | 'sold' | 'logs'>('whatsapp');
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'inventory' | 'upload' | 'sold' | 'logs' | 'leads'>('whatsapp');
   const [numbers, setNumbers] = useState<string[]>(
     Array(10).fill('').map((_, i) => currentNumbers[i] || '')
   );
@@ -51,6 +69,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [backgroundImageUrl, setBackgroundImageUrl] = useState(currentBackgroundImageUrl || '');
   const [backgroundPos, setBackgroundPos] = useState(currentBackgroundPosition || '50% 50%');
   const [cardImageFit, setCardImageFit] = useState<'cover' | 'contain'>(currentCardImageFit || 'cover');
+
+  // Promo State
+  const [promoActive, setPromoActive] = useState(currentPromoActive || false);
+  const [promoImageUrl, setPromoImageUrl] = useState(currentPromoImageUrl || '');
+  const [promoLink, setPromoLink] = useState(currentPromoLink || '');
+  const [promoText, setPromoText] = useState(currentPromoText || '');
   const [confirmSoldId, setConfirmSoldId] = useState<string | null>(null);
   const [deliveryPhoto, setDeliveryPhoto] = useState<File | null>(null); // State para foto da entrega
 
@@ -58,6 +82,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<AccessLog | null>(null); // State para o Modal de Detalhes
+
+  // State para Leads (Newsletter)
+  const [leads, setLeads] = useState<any[]>([]);
 
   // Fechar o painel automaticamente se o usuário não estiver logado (Logout)
   React.useEffect(() => {
@@ -84,12 +111,31 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
+  const loadLeads = async () => {
+    try {
+      const data = await db.getNewsletterSubscriptions();
+      setLeads(data);
+    } catch (err) {
+      console.error("❌ Erro ao carregar leads:", err);
+    }
+  };
+
   // Carregar logs quando mudar para a aba
   useEffect(() => {
     if (activeTab === 'logs') {
       loadLogs();
+    } else if (activeTab === 'leads') {
+      loadLeads();
     }
   }, [activeTab]);
+
+  const handleDeleteLead = async (id: string) => {
+    if (!confirm("Excluir este lead?")) return;
+    try {
+      await db.deleteNewsletterSubscription(id);
+      setLeads(prev => prev.filter(l => l.id !== id));
+    } catch (e) { alert("Erro ao excluir lead."); }
+  };
 
   const handleDeleteAuditLog = async (id: string) => {
     if (!confirm("Excluir este registro?")) return;
@@ -170,16 +216,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     return val ? parseInt(val).toLocaleString('pt-BR') : '';
   };
 
-  // Mantemos fileToBase64 apenas para o Background Image das configurações
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
     const files = Array.from(e.target.files || []) as File[];
     if (files.length === 0) return;
@@ -220,8 +256,35 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
-  // Função auxiliar para upload seguro
+  // Função auxiliar para upload (Prioridade ImgBB -> Fallback Supabase)
   const uploadFileToStorage = async (file: File): Promise<string> => {
+    const imgbbAPIKey = import.meta.env.VITE_IMGBB_API_KEY;
+
+    // Se existir chave do ImgBB configurada, upar pra lá (Iluminado / Não consome espaço Supabase)
+    if (imgbbAPIKey) {
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbAPIKey}`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          return data.data.url;
+        } else {
+          console.error("Erro na API do ImgBB:", data.error?.message);
+          throw new Error(data.error?.message || "Falha desconhecida no ImgBB");
+        }
+      } catch (err) {
+        console.warn("Falha ao subir para ImgBB, tentando fallback Supabase...", err);
+      }
+    }
+
+    // FALLBACK: Se não tiver a key do ImgBB ou der erro, manda pro Supabase
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = `${fileName}`;
@@ -431,7 +494,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         <div className="flex justify-between items-center mb-6 shrink-0">
           <div>
             <h2 className="font-heading text-gold text-2xl sm:text-3xl tracking-wider leading-none uppercase">Painel ADM</h2>
-            <p className="text-[9px] text-white/30 uppercase tracking-[0.4em] font-bold mt-2 ml-1">Sistema de Gestão Rei das Motos</p>
+            <p className="text-[9px] text-white/30 uppercase tracking-[0.4em] font-bold mt-2 ml-1">Sistema de Gestão MOTOS &amp; CIA</p>
           </div>
           <button onClick={onClose} className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-white/50 hover:bg-gold hover:text-black hover:rotate-90 transition-all duration-300">
             <span className="material-symbols-outlined text-xl">close</span>
@@ -444,6 +507,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             { id: 'inventory', icon: 'garage_home', label: 'Estoque' },
             { id: 'upload', icon: 'add_circle', label: 'Novo Veículo' },
             { id: 'sold', icon: 'sell', label: 'Vendidos' },
+            { id: 'leads', icon: 'contact_phone', label: 'Leads WhatsApp' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -499,10 +563,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           const file = e.target.files?.[0];
                           if (file) {
                             try {
-                              const base64 = await fileToBase64(file);
-                              setBackgroundImageUrl(base64);
+                              const url = await uploadFileToStorage(file);
+                              setBackgroundImageUrl(url);
                             } catch (err) {
-                              alert("Erro ao processar imagem");
+                              alert("Erro ao processar imagem para o background: " + err);
                             }
                           }
                         }}
@@ -597,6 +661,76 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 </div>
 
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">campaign</span> Pop-up Promocional
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+                      <input
+                        type="checkbox"
+                        id="promoActive"
+                        checked={promoActive}
+                        onChange={(e) => setPromoActive(e.target.checked)}
+                        className="accent-gold w-5 h-5 cursor-pointer"
+                      />
+                      <label htmlFor="promoActive" className="flex-1 cursor-pointer">
+                        <span className="block text-xs font-bold text-white uppercase tracking-wide">Ativar Promoção</span>
+                        <span className="block text-[9px] text-white/50">Exibir pop-up ao entrar no site</span>
+                      </label>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[9px] text-white/50 uppercase font-bold tracking-widest ml-1">Imagem da Promoção (URL)</label>
+                      <div className="flex gap-2">
+                        <input
+                          value={promoImageUrl}
+                          onChange={(e) => setPromoImageUrl(e.target.value)}
+                          className="flex-1 bg-surface-light border border-white/5 text-white text-xs px-4 py-3 rounded-xl focus:border-gold outline-none"
+                          placeholder="https://..."
+                        />
+                        <input
+                          type="file"
+                          className="hidden"
+                          id="promo-upload"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                const url = await uploadFileToStorage(file);
+                                setPromoImageUrl(url);
+                              } catch (err) { alert("Erro ao enviar imagem (Storage): " + err); }
+                            }
+                          }}
+                        />
+                        <label htmlFor="promo-upload" className="px-4 py-2 bg-white/10 rounded-xl flex items-center justify-center cursor-pointer hover:bg-white/20 text-white/70">
+                          <span className="material-symbols-outlined">upload</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[9px] text-white/50 uppercase font-bold tracking-widest ml-1">Link de Ação (Opcional)</label>
+                      <input
+                        value={promoLink}
+                        onChange={(e) => setPromoLink(e.target.value)}
+                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-4 py-3 rounded-xl focus:border-gold outline-none"
+                        placeholder="https://..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] text-white/50 uppercase font-bold tracking-widest ml-1">Texto do Botão</label>
+                      <input
+                        value={promoText}
+                        onChange={(e) => setPromoText(e.target.value)}
+                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-4 py-3 rounded-xl focus:border-gold outline-none"
+                        placeholder="Ex: VER OFERTA"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-lg">call</span> WhatsApps de Atendimento
@@ -657,11 +791,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 onClick={async () => {
                   try {
                     await onSaveSettings({
-                      whatsappNumbers: numbers.filter(n => n.trim() !== ''),
+                      whatsappNumbers: numbers, // Removido o filtro genérico para respeitar a ordem vazia do usuário
                       googleMapsUrl: mapsUrl,
                       backgroundImageUrl: backgroundImageUrl,
                       backgroundPosition: backgroundPos,
-                      cardImageFit: cardImageFit
+                      cardImageFit: cardImageFit,
+                      promoActive: promoActive,
+                      promoImageUrl: promoImageUrl,
+                      promoLink: promoLink,
+                      promoText: promoText
                     });
                     alert('Configurações salvas com sucesso!');
                   } catch (error) {
@@ -1049,6 +1187,63 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     Nenhum veículo vendido
                   </div>
                 )}
+              </div>
+            )
+          }
+
+          {
+            activeTab === 'leads' && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 space-y-8">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                      <span className="material-symbols-outlined text-lg">contact_phone</span> Leads (Inscritos WhatsApp)
+                    </h3>
+                    <div className="text-[10px] text-white/50 bg-white/10 px-3 py-1 rounded-full font-bold">
+                      Total: {leads.length}
+                    </div>
+                  </div>
+
+                  <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-black/20 text-[9px] uppercase tracking-widest text-white/50 font-bold border-b border-white/5">
+                        <tr>
+                          <th className="p-4">Data</th>
+                          <th className="p-4">Nome</th>
+                          <th className="p-4">WhatsApp</th>
+                          <th className="p-4 w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[10px] text-white/70">
+                        {leads.map(lead => (
+                          <tr key={lead.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td className="p-4 whitespace-nowrap opacity-60">
+                              {lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-'}
+                            </td>
+                            <td className="p-4 font-bold text-white uppercase">{lead.name || '-'}</td>
+                            <td className="p-4 font-mono text-green-400">
+                              <a href={`https://wa.me/55${lead.email?.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="hover:underline flex items-center gap-1">
+                                {lead.email} <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                              </a>
+                            </td>
+                            <td className="p-4">
+                              <button
+                                onClick={() => handleDeleteLead(lead.id)}
+                                className="w-6 h-6 flex items-center justify-center rounded-full text-white/20 hover:text-red-500 hover:bg-white/10 transition-all"
+                                title="Excluir Lead"
+                              >
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {leads.length === 0 && (
+                          <tr><td colSpan={4} className="p-8 text-center text-white/20">Nenhum lead cadastrado.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )
           }

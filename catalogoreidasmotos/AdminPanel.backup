@@ -11,6 +11,11 @@ interface AdminPanelProps {
   currentBackgroundImageUrl?: string;
   currentBackgroundPosition?: string;
   currentCardImageFit?: 'cover' | 'contain';
+  // Promo
+  currentPromoActive?: boolean;
+  currentPromoImageUrl?: string;
+  currentPromoLink?: string;
+  currentPromoText?: string;
   vehicles: Vehicle[];
   onSaveSettings: (settings: AppSettings) => Promise<void>;
   onSaveNumbers: (numbers: string[]) => void;
@@ -18,6 +23,10 @@ interface AdminPanelProps {
   onSaveBackgroundImageUrl: (url: string) => void;
   onSaveBackgroundPosition: (pos: string) => void;
   onSaveCardImageFit: (fit: 'cover' | 'contain') => void;
+  // Promo
+  onSavePromoActive: (active: boolean) => void;
+  onSavePromoImage: (url: string) => void;
+  onSavePromoLink: (url: string) => void;
   onUpdateVehicle: (id: string, updates: Partial<Vehicle>) => void;
   onDeleteVehicle: (id: string) => void;
   onUpload: (vehicle: Vehicle) => Promise<void>;
@@ -30,6 +39,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   currentBackgroundImageUrl,
   currentBackgroundPosition,
   currentCardImageFit,
+  // Promo Props
+  currentPromoActive,
+  currentPromoImageUrl,
+  currentPromoLink,
+  currentPromoText,
   vehicles,
   onSaveSettings,
   onSaveNumbers,
@@ -37,6 +51,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   onSaveBackgroundImageUrl,
   onSaveBackgroundPosition,
   onSaveCardImageFit,
+  onSavePromoActive,
+  onSavePromoImage,
+  onSavePromoLink,
   onUpdateVehicle,
   onDeleteVehicle,
   onUpload,
@@ -51,6 +68,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [backgroundImageUrl, setBackgroundImageUrl] = useState(currentBackgroundImageUrl || '');
   const [backgroundPos, setBackgroundPos] = useState(currentBackgroundPosition || '50% 50%');
   const [cardImageFit, setCardImageFit] = useState<'cover' | 'contain'>(currentCardImageFit || 'cover');
+
+  // Promo State
+  const [promoActive, setPromoActive] = useState(currentPromoActive || false);
+  const [promoImageUrl, setPromoImageUrl] = useState(currentPromoImageUrl || '');
+  const [promoLink, setPromoLink] = useState(currentPromoLink || '');
+  const [promoText, setPromoText] = useState(currentPromoText || '');
   const [confirmSoldId, setConfirmSoldId] = useState<string | null>(null);
   const [deliveryPhoto, setDeliveryPhoto] = useState<File | null>(null); // State para foto da entrega
 
@@ -597,6 +620,76 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 </div>
 
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">campaign</span> Pop-up Promocional
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+                      <input
+                        type="checkbox"
+                        id="promoActive"
+                        checked={promoActive}
+                        onChange={(e) => setPromoActive(e.target.checked)}
+                        className="accent-gold w-5 h-5 cursor-pointer"
+                      />
+                      <label htmlFor="promoActive" className="flex-1 cursor-pointer">
+                        <span className="block text-xs font-bold text-white uppercase tracking-wide">Ativar Promoção</span>
+                        <span className="block text-[9px] text-white/50">Exibir pop-up ao entrar no site</span>
+                      </label>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[9px] text-white/50 uppercase font-bold tracking-widest ml-1">Imagem da Promoção (URL)</label>
+                      <div className="flex gap-2">
+                        <input
+                          value={promoImageUrl}
+                          onChange={(e) => setPromoImageUrl(e.target.value)}
+                          className="flex-1 bg-surface-light border border-white/5 text-white text-xs px-4 py-3 rounded-xl focus:border-gold outline-none"
+                          placeholder="https://..."
+                        />
+                        <input
+                          type="file"
+                          className="hidden"
+                          id="promo-upload"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                const url = await fileToBase64(file);
+                                setPromoImageUrl(url);
+                              } catch (err) { alert("Erro ao processar imagem."); }
+                            }
+                          }}
+                        />
+                        <label htmlFor="promo-upload" className="px-4 py-2 bg-white/10 rounded-xl flex items-center justify-center cursor-pointer hover:bg-white/20 text-white/70">
+                          <span className="material-symbols-outlined">upload</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[9px] text-white/50 uppercase font-bold tracking-widest ml-1">Link de Ação (Opcional)</label>
+                      <input
+                        value={promoLink}
+                        onChange={(e) => setPromoLink(e.target.value)}
+                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-4 py-3 rounded-xl focus:border-gold outline-none"
+                        placeholder="https://..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] text-white/50 uppercase font-bold tracking-widest ml-1">Texto do Botão</label>
+                      <input
+                        value={promoText}
+                        onChange={(e) => setPromoText(e.target.value)}
+                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-4 py-3 rounded-xl focus:border-gold outline-none"
+                        placeholder="Ex: VER OFERTA"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-lg">call</span> WhatsApps de Atendimento
@@ -661,7 +754,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       googleMapsUrl: mapsUrl,
                       backgroundImageUrl: backgroundImageUrl,
                       backgroundPosition: backgroundPos,
-                      cardImageFit: cardImageFit
+                      cardImageFit: cardImageFit,
+                      promoActive: promoActive,
+                      promoImageUrl: promoImageUrl,
+                      promoLink: promoLink,
+                      promoText: promoText
                     });
                     alert('Configurações salvas com sucesso!');
                   } catch (error) {
