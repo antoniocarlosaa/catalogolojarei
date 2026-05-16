@@ -10,23 +10,31 @@ interface HeroSearchProps {
 const HeroSearch: React.FC<HeroSearchProps> = ({ backgroundImageUrl, backgroundPosition, onViewStock, onWhatsAppClick }) => {
     return (
         <div className="relative w-full max-w-[1400px] mx-auto mt-32 md:mt-28 mb-8 px-4">
-            <div className="relative w-full rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 group bg-neutral-900 min-h-[500px] flex items-center">
-                {/* Background Image */}
+            <div className="relative w-full rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 group bg-[#0d0d0d] flex flex-col md:flex-row md:items-center min-h-auto md:min-h-[500px]">
+                {/* Background Image - Mobile (Top block) & Desktop (Full background) */}
                 {backgroundImageUrl && (
-                    <div
-                        className="absolute inset-0 bg-cover bg-center z-0 transition-transform duration-1000 group-hover:scale-105"
-                        style={{
-                            backgroundImage: `url(${backgroundImageUrl})`,
-                            backgroundPosition: backgroundPosition || '50% 50%',
-                        }}
-                    />
+                    <>
+                        {/* Mobile Image */}
+                        <div 
+                            className="md:hidden w-full h-[250px] sm:h-[350px] bg-cover bg-center"
+                            style={{ backgroundImage: `url(${backgroundImageUrl})`, backgroundPosition: backgroundPosition || '50% 50%' }}
+                        />
+                        {/* Desktop Image */}
+                        <div
+                            className="hidden md:block absolute inset-0 bg-cover bg-center z-0 transition-transform duration-1000 group-hover:scale-105"
+                            style={{
+                                backgroundImage: `url(${backgroundImageUrl})`,
+                                backgroundPosition: backgroundPosition || '50% 50%',
+                            }}
+                        />
+                    </>
                 )}
                 
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-transparent z-10" />
+                {/* Desktop Overlay Gradient */}
+                <div className="hidden md:block absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-transparent z-10" />
 
                 {/* Content */}
-                <div className="relative z-20 p-5 md:p-12 lg:p-16 max-w-3xl flex flex-col gap-5 md:gap-6">
+                <div className="relative z-20 p-6 md:p-12 lg:p-16 w-full md:max-w-3xl flex flex-col gap-5 md:gap-6 bg-surface md:bg-transparent">
                     <h1 className="text-3xl md:text-5xl lg:text-6xl font-heading text-white font-bold leading-tight drop-shadow-lg">
                         Encontre sua próxima moto na <span className="text-gold">Rei das Motos</span>
                     </h1>
