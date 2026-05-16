@@ -1,10 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Vehicle, VehicleType } from '../types';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
-  onInterest: (vehicle: Vehicle) => void;
+  onInterest: (vehicle: Vehicle, mode?: 'default' | 'simular' | 'quero') => void;
   onClick?: () => void;
   variant?: 'default' | 'promo' | 'featured' | 'hero';
   imageFit?: 'cover' | 'contain';
@@ -18,7 +17,6 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
   // Dynamic Styles based on Variant
   const isFeatured = variant === 'featured' || variant === 'promo';
   const aspectRatio = isFeatured ? 'aspect-[16/9]' : 'aspect-[4/3]';
-  const cardPadding = isFeatured ? 'p-0' : 'p-3';
 
   // Mouse Move for Zoom Effect
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -29,9 +27,28 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
     setZoomStyle({ transformOrigin: `${x}% ${y}%`, scale: '1.5' });
   };
 
+  const dynamicBadges = useMemo(() => {
+    const badges: string[] = [];
+    if (vehicle.isSold) return badges;
+    
+    const cat = (vehicle.category || '').toLowerCase();
+    const name = (vehicle.name || '').toLowerCase();
+    
+    if (vehicle.km !== undefined && vehicle.km > 0 && vehicle.km < 15000) badges.push('💎 BAIXO KM');
+    if (cat.includes('pop') || cat.includes('biz') || cat.includes('cg') || cat.includes('160') || vehicle.displacement && parseInt(vehicle.displacement.toString()) <= 160) {
+      if (Math.random() > 0.5) badges.push('⚡ Econômica');
+      else badges.push('🚀 Ótima para delivery');
+    }
+    if (name.includes('titan') || name.includes('fan') || name.includes('bros') || vehicle.isFeatured) badges.push('🔥 Muito procurada');
+    if (cat.includes('cargo') || cat.includes('work')) badges.push('💼 Ideal para trabalho');
+    
+    // Select max 2 to avoid clutter
+    return badges.slice(0, 2);
+  }, [vehicle]);
+
   return (
     <div
-      className={`relative bg-[#0d0d0d] rounded-xl overflow-hidden border border-white/5 group transition-all duration-300 hover:border-gold/30 flex flex-col h-full ${vehicle.isSold ? '' : ''} ${vehicle.isSold ? 'border-green-500/20' : ''}`}
+      className={`relative bg-[#0d0d0d] rounded-xl overflow-hidden border border-white/5 group transition-all duration-300 hover:border-gold/30 flex flex-col h-full ${vehicle.isSold ? 'border-gold/20 opacity-90' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => { setIsHovered(false); setZoomStyle({ transformOrigin: 'center center', scale: '1' }); }}
@@ -69,7 +86,6 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
               alt={vehicle.name}
             />
 
-            {/* Picture-in-Picture: Show Original Vehicle Image in corner if Sold and has Sales Photo */}
             {vehicle.isSold && vehicle.salesPhotoUrl && (
               <div className="absolute bottom-2 right-2 w-16 h-12 rounded-lg overflow-hidden border-2 border-white/50 shadow-lg z-20 bg-black/50">
                 <img
@@ -97,37 +113,25 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
           </div>
         )}
 
-        {/* Badges */}
-        {/* Type Badge */}
         <div className={`absolute ${isFeatured ? 'top-3 left-3' : 'bottom-2 left-2'} z-20 flex items-center justify-center w-8 h-8 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-gold pointer-events-none`}>
           <span className="material-symbols-outlined text-sm">
             {vehicle.type === VehicleType.MOTO ? 'motorcycle' : 'directions_car'}
           </span>
         </div>
 
-        {/* Sold Badge */}
+        {/* Sold Badge Professional */}
         {vehicle.isSold && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20 pointer-events-none">
-            <span className="border border-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white rounded-full bg-red-900/80">VENDIDO</span>
-          </div>
-        )}
-        {/* Mileage Badges (Moved to Image Overlay) */}
-        {/* Mileage Badges */}
-        {vehicle.isRepasse && (
-          <div className="absolute top-3 right-3 px-3 py-1 bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg z-20 border border-red-500/50 animate-pulse">
-            ⚠️ Repasse
+          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20 pointer-events-none backdrop-blur-[2px]">
+            <span className="border-2 border-gold px-4 py-2 text-sm font-bold uppercase tracking-widest text-gold rounded-md shadow-[0_0_15px_rgba(255,215,0,0.3)] bg-black/50 rotate-[-10deg]">VENDIDO</span>
+            <span className="text-[10px] text-white/80 mt-3 uppercase tracking-wider font-medium">Mais uma realização Rei das Motos</span>
           </div>
         )}
 
-        <div className="absolute top-3 left-3 flex flex-col gap-2 z-20">
-          {vehicle.isFeatured && (
-            <div className="self-start px-3 py-1 bg-gold text-black text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">
-              Destaque
-            </div>
-          )}
-          {(vehicle.isPromoSemana || vehicle.isPromoMes) && (
-            <div className="self-start px-3 py-1 bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">
-              Promoção
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-2 z-20 pointer-events-none">
+          {vehicle.isRepasse && (
+            <div className="self-start px-3 py-1 bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg border border-red-500/50 animate-pulse">
+              ⚠️ Repasse
             </div>
           )}
           {vehicle.isZeroKm && (
@@ -135,36 +139,36 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
               0 KM
             </div>
           )}
+          {dynamicBadges.map((badge, idx) => (
+             <div key={idx} className="self-start px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 text-white text-[9px] font-bold uppercase tracking-widest rounded-full shadow-lg">
+                {badge}
+             </div>
+          ))}
         </div>
 
       </div>
 
       {/* INFO CONTENT FOR DEFAULT VARIANT */}
       {!isFeatured && (
-        <div className="p-3 flex flex-col flex-1 gap-1"> {/* Reduced gap */}
+        <div className="p-4 flex flex-col flex-1 gap-1">
 
-          <h4 className="text-sm font-heading text-white font-semibold tracking-tight uppercase leading-snug line-clamp-2 h-[2.5em] mb-1">
+          <h4 className="text-sm font-heading text-white font-semibold tracking-tight uppercase leading-snug line-clamp-2 h-[2.5em] mb-1 group-hover:text-gold transition-colors cursor-pointer" onClick={onClick}>
             {vehicle.name}
           </h4>
 
-          {/* Details Row - Cleaned up */}
-          <div className="flex items-center gap-3 text-[10px] text-gold font-bold uppercase tracking-wider mb-auto">
-            {/* Ano com cor destacada */}
-            <span className="text-gold font-bold">{vehicle.year || '-'}</span>
+          <div className="flex items-center gap-3 text-[10px] text-white/80 font-bold uppercase tracking-wider mb-auto">
+            <span className="bg-white/10 px-2 py-0.5 rounded text-white">{vehicle.year || '-'}</span>
 
-            <span className="w-px h-3 bg-gold/30 flex-shrink-0"></span>
-
-            {/* Cilindrada com cor destacada (se houver) */}
             {vehicle.displacement && (
               <>
-                <span className="text-gold font-bold">{vehicle.displacement} CC</span>
                 <span className="w-px h-3 bg-gold/30 flex-shrink-0"></span>
+                <span className="text-white/80">{vehicle.displacement} CC</span>
               </>
             )}
 
-            {/* KM com Ícone */}
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="material-symbols-outlined text-[14px]">speed</span>
+            <span className="w-px h-3 bg-gold/30 flex-shrink-0"></span>
+            <div className="flex items-center gap-1 min-w-0 text-white/80">
+              <span className="material-symbols-outlined text-[13px]">speed</span>
               <span className="truncate">{
                 vehicle.km === undefined ? '-' :
                   vehicle.km <= 0 ? '0 KM' :
@@ -174,88 +178,49 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
             </div>
           </div>
 
-          {/* Cod & Placa Section */}
-          <div className="flex items-center justify-between text-[9px] text-gold/70 font-mono uppercase tracking-wider mt-1 border-t border-gold/10 pt-1">
-            {vehicle.plate_last3 && (
-              <span title={`Final Placa: ${vehicle.plate_last3}`}>PLACA: {vehicle.plate_last3}</span>
-            )}
-          </div>
-
-          {/* Category/Specs below detail row if needed, or just keep it simple. User wanted order. */}
-          {/* Let's put category on its own line if it exists to avoid wrapping weirdness with the dots */}
-          {(vehicle.category || vehicle.specs) && (
-            <div className="text-[9px] text-gold/70 font-medium uppercase tracking-widest truncate mb-2 mt-1">
-              {vehicle.category || (vehicle.specs ? vehicle.specs.split('|').filter(s => {
-                const upper = s.trim().toUpperCase();
-                return !upper.startsWith('COR:') && !upper.startsWith('ANO:') && !upper.startsWith('KM:') && !upper.startsWith('[KM') && !upper.startsWith('SEMI NOVA') && !upper.startsWith('ZERO KM');
-              }).join(' | ') : '')}
-            </div>
+          {vehicle.plate_last3 && (
+             <div className="flex items-center justify-between text-[9px] text-white/40 font-mono uppercase tracking-wider mt-1 pt-1">
+               <span title={`Final Placa: ${vehicle.plate_last3}`}>PLACA: {vehicle.plate_last3}</span>
+             </div>
           )}
 
-
-          <div className="mt-2 pt-2 border-t border-white/5">
-            <p className="text-gold/60 text-[9px] font-bold uppercase tracking-widest">A partir de</p>
-            <p className="text-white font-bold text-lg leading-tight">
+          <div className="mt-3 pt-3 border-t border-white/5">
+            <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest mb-1">A partir de</p>
+            <p className="text-gold font-bold text-xl leading-tight">
               {typeof vehicle.price === 'number' ? `R$ ${vehicle.price.toLocaleString('pt-BR')}` : vehicle.price}
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 mt-2">
-            {/* Ver Detalhes - Opens Modal */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onClick) onClick();
-              }}
-              className="w-full py-2 bg-white/5 hover:bg-white/10 text-white transition-all rounded-lg flex items-center justify-center gap-2 group/btn border border-white/10"
-            >
-              <span className="text-[9px] font-bold uppercase tracking-wider">Ver Detalhes</span>
-              <span className="material-symbols-outlined text-base group-hover/btn:translate-x-1 transition-transform">visibility</span>
-            </button>
-
-            <div className="mt-3 pt-3 border-t border-white/5 flex gap-2">
-              {/* WhatsApp */}
-              {vehicle.isSold ? (
-                <button
-                  disabled
-                  className="flex-1 py-2 bg-red-500/20 text-red-500 font-bold rounded-full flex items-center justify-center gap-2 cursor-not-allowed border border-red-500/20"
-                >
-                  <span className="text-xs font-bold tracking-wide uppercase">VENDIDO</span>
-                </button>
-              ) : (
+          <div className="flex flex-col gap-2 mt-4">
+            {vehicle.isSold ? (
+              <button disabled className="w-full py-3 bg-white/5 text-white/30 font-bold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed border border-white/5">
+                <span className="text-xs font-bold tracking-wide uppercase">VENDIDO</span>
+              </button>
+            ) : (
+              <>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onInterest(vehicle);
+                    onInterest(vehicle, 'quero');
                   }}
-                  className="flex-1 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold transition-all rounded-full flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(37,211,102,0.39)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.23)] hover:-translate-y-0.5 active:scale-95"
+                  className="w-full py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold transition-all rounded-xl flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(37,211,102,0.39)] hover:-translate-y-0.5 active:scale-95 text-sm uppercase tracking-wider"
                 >
-                  <span className="text-xs font-bold tracking-wide uppercase">WhatsApp</span>
+                  <span className="material-symbols-outlined text-lg">touch_app</span>
+                  Quero essa
                 </button>
-              )}
 
-              {/* Share Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const url = `${window.location.origin}?v=${vehicle.id}`;
-                  if (navigator.share) {
-                    navigator.share({
-                      title: vehicle.name,
-                      text: `Confira este veículo: ${vehicle.name}`,
-                      url: url
-                    }).catch(console.error);
-                  } else {
-                    navigator.clipboard.writeText(url);
-                    alert('Link copiado!');
-                  }
-                }}
-                className="w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all hover:-translate-y-0.5 active:scale-95"
-                title="Compartilhar"
-              >
-                <span className="material-symbols-outlined text-sm">share</span>
-              </button>
-            </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onInterest(vehicle, 'simular');
+                  }}
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-white transition-all rounded-xl flex items-center justify-center gap-2 border border-white/10 hover:-translate-y-0.5 active:scale-95 text-xs font-bold uppercase tracking-wider"
+                >
+                  <span className="material-symbols-outlined text-base">calculate</span>
+                  Simular parcela
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

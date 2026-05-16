@@ -5,7 +5,7 @@ import ImageLightbox from './ImageLightbox';
 interface VehicleDetailModalProps {
     vehicle: Vehicle;
     onClose: () => void;
-    onInterest: (vehicle: Vehicle) => void;
+    onInterest: (vehicle: Vehicle, mode?: 'default' | 'simular' | 'quero') => void;
 }
 
 const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClose, onInterest }) => {
@@ -15,10 +15,8 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
     // Logic to determine which images to show
     let images: string[] = [];
     if (vehicle.isSold && vehicle.salesPhotoUrl) {
-        // If sold and has sales photo: Show Sales Photo + Original Cover Photo (Exactly 2 photos)
         images = [vehicle.salesPhotoUrl, vehicle.imageUrl];
     } else {
-        // Default behavior: Show all images or just the cover if no gallery
         images = vehicle.images && vehicle.images.length > 0 ? vehicle.images : [vehicle.imageUrl];
     }
 
@@ -35,9 +33,8 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                     <span className="material-symbols-outlined">close</span>
                 </button>
 
-                {/* Galeria - Esquerda (Mobile: Topo) */}
+                {/* Galeria */}
                 <div className="lg:w-3/5 bg-black/50 relative flex flex-col">
-                    {/* Imagem Principal */}
                     <div className="flex-1 relative aspect-video lg:aspect-auto overflow-hidden group">
                         <img
                             src={images[activeImageIndex]}
@@ -54,7 +51,6 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                             />
                         )}
 
-                        {/* Navegação de Imagens */}
                         {images.length > 1 && (
                             <>
                                 <button
@@ -73,7 +69,6 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                         )}
                     </div>
 
-                    {/* Thumbnails */}
                     {images.length > 1 && (
                         <div className="p-4 flex gap-3 overflow-x-auto bg-black/20 border-t border-white/5">
                             {images.map((img, idx) => (
@@ -89,18 +84,17 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                     )}
                 </div>
 
-                {/* Detalhes - Direita (Mobile: Baixo) */}
+                {/* Detalhes */}
                 <div className="lg:w-2/5 p-8 lg:p-12 overflow-y-auto flex flex-col bg-surface">
                     <div className="mb-8">
-                        {/* Sold Banner */}
                         {vehicle.isSold && (
-                            <div className="w-full bg-red-600/20 border border-red-500/50 rounded-xl p-4 mb-6 flex flex-col items-center justify-center text-center animate-pulse">
-                                <span className="text-red-500 font-heading text-2xl uppercase tracking-widest font-bold">VENDIDO</span>
-                                <span className="text-red-400/80 text-[10px] uppercase tracking-wide font-bold mt-1">Este veículo já foi entregue</span>
+                            <div className="w-full border border-gold/30 rounded-xl p-4 mb-6 flex flex-col items-center justify-center text-center bg-gold/10">
+                                <span className="text-gold font-heading text-2xl uppercase tracking-widest font-bold">VENDIDO</span>
+                                <span className="text-gold/80 text-[10px] uppercase tracking-wide font-bold mt-1">Mais uma realização Rei das Motos</span>
                             </div>
                         )}
 
-                        <div className="flex items-center gap-3 mb-4">
+                        <div className="flex flex-wrap items-center gap-3 mb-4">
                             {vehicle.isFeatured && <span className="px-3 py-1 bg-gold text-black text-[10px] font-bold uppercase tracking-widest rounded-full">Destaque</span>}
                             {(vehicle.isPromoSemana || vehicle.isPromoMes) && <span className="px-3 py-1 bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full">Promoção</span>}
                             {vehicle.isZeroKm && <span className="px-3 py-1 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full">0 KM</span>}
@@ -147,7 +141,6 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                             </div>
                         </div>
 
-                        {/* Checklist Section */}
                         <div className="mt-6 pt-6 border-t border-white/5">
                             <h4 className="text-[10px] text-white/30 font-bold uppercase tracking-widest mb-4">Itens & Documentação</h4>
                             <div className="grid grid-cols-2 gap-3">
@@ -180,13 +173,31 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                         )}
                     </div>
 
-                    <button
-                        onClick={() => !vehicle.isSold && onInterest(vehicle)}
-                        disabled={vehicle.isSold}
-                        className={`w-full py-2 ${vehicle.isSold ? 'bg-red-900/50 cursor-not-allowed opacity-50' : 'bg-[#25D366] hover:bg-[#128C7E] animate-pulse hover:animate-none shadow-[0_0_20px_rgba(37,211,102,0.3)] hover:shadow-[0_0_30px_rgba(37,211,102,0.5)]'} text-white active:scale-95 transition-all rounded-xl flex items-center justify-center gap-3 group`}
-                    >
-                        <span className="text-base font-bold uppercase tracking-wider">{vehicle.isSold ? 'Veículo Indisponível' : 'Whatsapp'}</span>
-                    </button>
+                    <div className="flex flex-col gap-3 mt-4">
+                        {vehicle.isSold ? (
+                            <button disabled className="w-full py-3 bg-white/5 text-white/30 font-bold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed border border-white/5">
+                                <span className="text-xs font-bold tracking-wide uppercase">VENDIDO</span>
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onInterest(vehicle, 'quero'); }}
+                                    className="w-full py-4 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold transition-all rounded-xl flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(37,211,102,0.39)] hover:-translate-y-0.5 active:scale-95 text-lg uppercase tracking-wider"
+                                >
+                                    <span className="material-symbols-outlined text-2xl">touch_app</span>
+                                    Quero essa
+                                </button>
+
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onInterest(vehicle, 'simular'); }}
+                                    className="w-full py-3 bg-white/5 hover:bg-white/10 text-white transition-all rounded-xl flex items-center justify-center gap-2 border border-white/10 hover:-translate-y-0.5 active:scale-95 text-sm font-bold uppercase tracking-wider"
+                                >
+                                    <span className="material-symbols-outlined text-lg">calculate</span>
+                                    Simular parcela
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
