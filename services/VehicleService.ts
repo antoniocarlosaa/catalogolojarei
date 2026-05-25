@@ -297,6 +297,10 @@ class VehicleService {
         promoImageUrl: data?.promo_image_url || local.promoImageUrl || '',
         promoLink: data?.promo_link || local.promoLink || '',
         promoText: data?.promo_text || local.promoText || '',
+        address: data?.address || local.address || '',
+        schedule: data?.schedule || local.schedule || '',
+        instagramUrl: data?.instagram_url || local.instagramUrl || '',
+        footerText: data?.footer_text || local.footerText || '',
       };
     } catch (error) {
       console.error('Erro ao conectar com Supabase, usando configurações locais:', error);
@@ -311,7 +315,17 @@ class VehicleService {
       console.log('Usando configurações do localStorage');
       return JSON.parse(localData);
     }
-    return { whatsappNumbers: [], googleMapsUrl: '', backgroundImageUrl: '', backgroundPosition: '50% 50%', cardImageFit: 'cover' };
+    return { 
+      whatsappNumbers: [], 
+      googleMapsUrl: '', 
+      backgroundImageUrl: '', 
+      backgroundPosition: '50% 50%', 
+      cardImageFit: 'cover',
+      address: 'Rua Principal, 123 - Centro, São Luís - MA',
+      schedule: 'Seg a Sex: 08h às 18h | Sáb: 08h às 12h',
+      instagramUrl: 'https://instagram.com/reidasmotos',
+      footerText: 'Especialistas em realizar sonhos. As melhores motos com as melhores condições.'
+    };
   }
 
   // Salvar configurações
@@ -341,6 +355,10 @@ class VehicleService {
             promo_image_url: settings.promoImageUrl,
             promo_link: settings.promoLink,
             promo_text: settings.promoText,
+            address: settings.address,
+            schedule: settings.schedule,
+            instagram_url: settings.instagramUrl,
+            footer_text: settings.footerText,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existing.id)
@@ -364,6 +382,10 @@ class VehicleService {
             promo_image_url: settings.promoImageUrl,
             promo_link: settings.promoLink,
             promo_text: settings.promoText,
+            address: settings.address,
+            schedule: settings.schedule,
+            instagram_url: settings.instagramUrl,
+            footer_text: settings.footerText,
           }]);
 
         if (error) throw error;

@@ -15,7 +15,7 @@ const HeroSearch: React.FC<HeroSearchProps> = ({ backgroundImageUrl, backgroundP
                 {backgroundImageUrl && (
                     <>
                         {/* Mobile Image */}
-                        <div 
+                        <div
                             className="md:hidden w-full h-[250px] sm:h-[350px] bg-cover bg-center"
                             style={{ backgroundImage: `url(${backgroundImageUrl})`, backgroundPosition: backgroundPosition || '50% 50%' }}
                         />
@@ -29,7 +29,7 @@ const HeroSearch: React.FC<HeroSearchProps> = ({ backgroundImageUrl, backgroundP
                         />
                     </>
                 )}
-                
+
                 {/* Desktop Overlay Gradient */}
                 <div className="hidden md:block absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-transparent z-10" />
 
@@ -38,19 +38,19 @@ const HeroSearch: React.FC<HeroSearchProps> = ({ backgroundImageUrl, backgroundP
                     <h1 className="text-3xl md:text-5xl lg:text-6xl font-heading text-white font-bold leading-tight drop-shadow-lg">
                         Encontre sua próxima moto na <span className="text-gold">Rei das Motos</span>
                     </h1>
-                    
+
                     <p className="text-base md:text-xl text-white/90 font-medium drop-shadow-md">
                         Escolha sua moto e fale conosco para verificar entrada, parcelas e aprovação.
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 mt-2 md:mt-4">
-                        <button 
+                        <button
                             onClick={onViewStock}
                             className="px-6 md:px-8 py-4 bg-gold hover:bg-yellow-400 text-black font-bold uppercase tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:scale-105"
                         >
                             Ver estoque
                         </button>
-                        <button 
+                        <button
                             onClick={onWhatsAppClick}
                             className="px-6 md:px-8 py-4 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold uppercase tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(37,211,102,0.3)] hover:scale-105 flex items-center justify-center gap-2"
                         >

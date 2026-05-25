@@ -54,4 +54,9 @@ export interface AppSettings {
   promoImageUrl?: string;
   promoLink?: string;
   promoText?: string;
+  // Footer / Informações Adicionais
+  address?: string;
+  schedule?: string;
+  instagramUrl?: string;
+  footerText?: string;
 }

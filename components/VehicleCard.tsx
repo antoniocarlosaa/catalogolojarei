@@ -14,6 +14,34 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
 
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}?v=${vehicle.id}`;
+    const shareData = {
+      title: vehicle.name,
+      text: `Confira este veículo: ${vehicle.name} no Rei das Motos!`,
+      url: shareUrl,
+    };
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Link copiado para a área de transferência!');
+      }
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        console.error('Erro ao compartilhar:', err);
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          alert('Link copiado para a área de transferência!');
+        } catch (clipErr) {
+          console.error('Erro ao copiar link:', clipErr);
+        }
+      }
+    }
+  };
+
   // Dynamic Styles based on Variant
   const isFeatured = variant === 'featured' || variant === 'promo';
   const aspectRatio = isFeatured ? 'aspect-[16/9]' : 'aspect-[4/3]';
@@ -121,7 +149,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
 
         {/* Sold Badge Professional */}
         {vehicle.isSold && (
-          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20 pointer-events-none backdrop-blur-[2px]">
+          <div className="absolute inset-0 bg-black/35 flex flex-col items-center justify-center z-20 pointer-events-none">
             <span className="border-2 border-gold px-4 py-2 text-sm font-bold uppercase tracking-widest text-gold rounded-md shadow-[0_0_15px_rgba(255,215,0,0.3)] bg-black/50 rotate-[-10deg]">VENDIDO</span>
             <span className="text-[10px] text-white/80 mt-3 uppercase tracking-wider font-medium">Mais uma realização Rei das Motos</span>
           </div>
@@ -145,6 +173,15 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
              </div>
           ))}
         </div>
+
+        {/* Botão de Compartilhar */}
+        <button
+          onClick={handleShare}
+          className="absolute top-3 right-3 z-30 w-8 h-8 bg-black/60 hover:bg-gold text-white hover:text-black border border-white/10 rounded-full flex items-center justify-center transition-all duration-300 shadow-md hover:scale-110"
+          title="Compartilhar"
+        >
+          <span className="material-symbols-outlined text-sm">share</span>
+        </button>
 
       </div>
 

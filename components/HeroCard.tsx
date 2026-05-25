@@ -44,7 +44,7 @@ const HeroCard: React.FC<HeroCardProps> = ({ vehicle, onInterest, onViewDetails 
                     </div>
 
                     {vehicle.isSold && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[2px] z-20">
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-20">
                             <span className="border border-white/20 px-5 py-2 text-[8px] font-bold uppercase tracking-widest text-white rounded-full">INDISPONÍVEL</span>
                         </div>
                     )}

@@ -381,13 +381,52 @@ const App: React.FC = () => {
                     </h2>
                     
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-                        {/* Placeholders for photos */}
-                        {[1,2,3,4].map(i => (
-                            <div key={i} className="aspect-[4/5] bg-black/40 rounded-2xl border border-white/5 flex items-center justify-center relative overflow-hidden group">
-                                <span className="material-symbols-outlined text-white/10 text-6xl group-hover:scale-110 transition-transform">photo_camera</span>
-                                <div className="absolute inset-0 border-2 border-gold/0 group-hover:border-gold/30 rounded-2xl transition-all"></div>
-                            </div>
-                        ))}
+                        {(() => {
+                            const soldToDisplay = motosVendidas.slice(0, 4);
+                            const placeholdersNeeded = Math.max(0, 4 - soldToDisplay.length);
+                            const items = [
+                              ...soldToDisplay.map(v => ({ type: 'sold' as const, vehicle: v })), 
+                              ...Array(placeholdersNeeded).fill({ type: 'placeholder' as const })
+                            ];
+                            
+                            return items.map((item, idx) => {
+                                if (item.type === 'sold' && item.vehicle) {
+                                    const v = item.vehicle;
+                                    return (
+                                        <div 
+                                            key={v.id} 
+                                            onClick={() => handleViewDetails(v)}
+                                            className="aspect-[4/5] bg-black/40 rounded-2xl border border-gold/10 flex items-center justify-center relative overflow-hidden group cursor-pointer hover:border-gold/30 transition-all shadow-lg"
+                                        >
+                                            <img 
+                                                src={v.salesPhotoUrl || v.imageUrl} 
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                                alt={v.name}
+                                                onError={(e) => {
+                                                  if (v.salesPhotoUrl && e.currentTarget.src !== v.imageUrl) {
+                                                    e.currentTarget.src = v.imageUrl;
+                                                  }
+                                                }}
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                                                <span className="text-[8px] text-gold font-bold uppercase tracking-widest mb-1">Realizado!</span>
+                                                <span className="text-[10px] text-white font-bold uppercase tracking-wider truncate">{v.name}</span>
+                                            </div>
+                                            <div className="absolute top-2 right-2 px-2 py-0.5 bg-gold text-black text-[8px] font-bold uppercase tracking-widest rounded-full shadow-md">
+                                                Sonho Realizado
+                                            </div>
+                                        </div>
+                                    );
+                                } else {
+                                    return (
+                                        <div key={`placeholder-${idx}`} className="aspect-[4/5] bg-black/40 rounded-2xl border border-white/5 flex items-center justify-center relative overflow-hidden group">
+                                            <span className="material-symbols-outlined text-white/10 text-6xl group-hover:scale-110 transition-transform">photo_camera</span>
+                                            <div className="absolute inset-0 border-2 border-gold/0 group-hover:border-gold/30 rounded-2xl transition-all"></div>
+                                        </div>
+                                    );
+                                }
+                            });
+                        })()}
                     </div>
 
                     <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 border-t border-white/10 pt-8">
@@ -438,16 +477,22 @@ const App: React.FC = () => {
         <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-left mb-8">
             <div>
                <h4 className="text-gold font-bold uppercase tracking-widest mb-4">Rei das Motos</h4>
-               <p className="text-white/60 text-sm">Especialistas em realizar sonhos. As melhores motos com as melhores condições.</p>
+               <p className="text-white/60 text-sm">{settings.footerText || 'Especialistas em realizar sonhos. As melhores motos com as melhores condições.'}</p>
             </div>
             <div>
                <h4 className="text-white font-bold uppercase tracking-widest mb-4">Contato</h4>
-               <p className="text-white/60 text-sm flex items-center gap-2 mb-2"><span className="material-symbols-outlined text-sm text-gold">location_on</span> Loja Física</p>
-               <p className="text-white/60 text-sm flex items-center gap-2 mb-2"><span className="material-symbols-outlined text-sm text-gold">schedule</span> Seg a Sex: 08h às 18h | Sáb: 08h às 12h</p>
+               <p className="text-white/60 text-sm flex items-center gap-2 mb-2">
+                 <span className="material-symbols-outlined text-sm text-gold">location_on</span> 
+                 {settings.address || 'Loja Física'}
+               </p>
+               <p className="text-white/60 text-sm flex items-center gap-2 mb-2">
+                 <span className="material-symbols-outlined text-sm text-gold">schedule</span> 
+                 {settings.schedule || 'Seg a Sex: 08h às 18h | Sáb: 08h às 12h'}
+               </p>
             </div>
             <div>
                <h4 className="text-white font-bold uppercase tracking-widest mb-4">Redes Sociais</h4>
-               <a href="#" className="text-white/60 hover:text-gold transition-colors text-sm flex items-center gap-2 mb-2">Instagram</a>
+               <a href={settings.instagramUrl || 'https://instagram.com/reidasmotos'} target="_blank" rel="noreferrer" className="text-white/60 hover:text-gold transition-colors text-sm flex items-center gap-2 mb-2">Instagram</a>
                <a href="#" onClick={(e) => {e.preventDefault(); handleGenericWhatsApp();}} className="text-white/60 hover:text-[#25D366] transition-colors text-sm flex items-center gap-2 mb-2">WhatsApp</a>
             </div>
         </div>
@@ -472,6 +517,10 @@ const App: React.FC = () => {
           currentPromoImageUrl={settings.promoImageUrl}
           currentPromoLink={settings.promoLink}
           currentPromoText={settings.promoText}
+          currentAddress={settings.address}
+          currentSchedule={settings.schedule}
+          currentInstagramUrl={settings.instagramUrl}
+          currentFooterText={settings.footerText}
           vehicles={vehicles}
           onSaveSettings={async (newSettings) => {
             setSettings(newSettings);

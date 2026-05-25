@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import { db } from '../services/VehicleService';
 
 const NewsletterModal: React.FC = () => {
     const [isVisible, setIsVisible] = useState(false);
@@ -7,11 +8,24 @@ const NewsletterModal: React.FC = () => {
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [settings, setSettings] = useState<any>(null);
 
     useEffect(() => {
         // MODO DEBUG: Forçar exibição sempre após 1 segundo
         const timer = setTimeout(() => setIsVisible(true), 1000);
         return () => clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const s = await db.getSettings();
+                setSettings(s);
+            } catch (err) {
+                console.error("Erro ao carregar configurações no modal de newsletter:", err);
+            }
+        };
+        loadSettings();
     }, []);
 
     const handleClose = () => {
@@ -27,22 +41,66 @@ const NewsletterModal: React.FC = () => {
         try {
             const { error } = await supabase
                 .from('newsletter_subscriptions')
-                .insert([{ email, name }]);
+                .insert([{ email, name, phone: email }]);
 
             if (error) {
-                // Se duplicado, fingimos sucesso para não expor dados ou mostramos msg amigável.
+                // Se duplicado, fingimos sucesso para não expor dados ou mostramos msg amigável e redirecionamos.
                 if (error.code === '23505') { // Unique violation
+                    let firstActiveNumber = '';
+                    if (settings && settings.whatsappNumbers) {
+                        const activeNum = settings.whatsappNumbers.find((n: string) => !n.startsWith('OFF:') && n.replace(/\D/g, '').length > 5);
+                        if (activeNum) {
+                            firstActiveNumber = activeNum.replace(/\D/g, '');
+                        }
+                    }
+
                     setSubmitted(true);
                     localStorage.setItem('newsletter_subscribed', 'true');
-                    setTimeout(() => setIsVisible(false), 2000);
+
+                    if (firstActiveNumber) {
+                        const cleanPhone = email.replace(/\D/g, '');
+                        const message = encodeURIComponent(
+                            `Olá! Gostaria de confirmar meu cadastro para Alertas de Estoque no catálogo online.\n\n` +
+                            `📝 Nome: ${name}\n` +
+                            `📱 WhatsApp: (${cleanPhone.slice(0, 2)}) ${cleanPhone.slice(2, 7)}-${cleanPhone.slice(7)}`
+                        );
+                        setTimeout(() => {
+                            window.open(`https://api.whatsapp.com/send?phone=${firstActiveNumber}&text=${message}`, '_blank');
+                            setIsVisible(false);
+                        }, 1500);
+                    } else {
+                        setTimeout(() => setIsVisible(false), 2000);
+                    }
                     return;
                 }
                 throw error;
             }
 
+            let firstActiveNumber = '';
+            if (settings && settings.whatsappNumbers) {
+                const activeNum = settings.whatsappNumbers.find((n: string) => !n.startsWith('OFF:') && n.replace(/\D/g, '').length > 5);
+                if (activeNum) {
+                    firstActiveNumber = activeNum.replace(/\D/g, '');
+                }
+            }
+
             setSubmitted(true);
             localStorage.setItem('newsletter_subscribed', 'true');
-            setTimeout(() => setIsVisible(false), 2000);
+
+            if (firstActiveNumber) {
+                const cleanPhone = email.replace(/\D/g, '');
+                const message = encodeURIComponent(
+                    `Olá! Gostaria de confirmar meu cadastro para Alertas de Estoque no catálogo online.\n\n` +
+                    `📝 Nome: ${name}\n` +
+                    `📱 WhatsApp: (${cleanPhone.slice(0, 2)}) ${cleanPhone.slice(2, 7)}-${cleanPhone.slice(7)}`
+                );
+                setTimeout(() => {
+                    window.open(`https://api.whatsapp.com/send?phone=${firstActiveNumber}&text=${message}`, '_blank');
+                    setIsVisible(false);
+                }, 1500);
+            } else {
+                setTimeout(() => setIsVisible(false), 2000);
+            }
 
         } catch (error) {
             console.error("Erro ao inscrever", error);

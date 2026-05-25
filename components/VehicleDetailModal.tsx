@@ -197,6 +197,29 @@ const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({ vehicle, onClos
                                 </button>
                             </>
                         )}
+
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const shareUrl = `${window.location.origin}?v=${vehicle.id}`;
+                                const shareData = {
+                                    title: vehicle.name,
+                                    text: `Confira este veículo: ${vehicle.name} no Rei das Motos!`,
+                                    url: shareUrl,
+                                };
+                                if (navigator.share) {
+                                    navigator.share(shareData).catch(err => console.log(err));
+                                } else {
+                                    navigator.clipboard.writeText(shareUrl)
+                                        .then(() => alert('Link copiado para a área de transferência!'))
+                                        .catch(err => console.error(err));
+                                }
+                            }}
+                            className="w-full py-3 bg-white/5 hover:bg-white/10 text-white transition-all rounded-xl flex items-center justify-center gap-2 border border-white/10 hover:-translate-y-0.5 active:scale-95 text-sm font-bold uppercase tracking-wider"
+                        >
+                            <span className="material-symbols-outlined text-lg">share</span>
+                            Compartilhar
+                        </button>
                     </div>
                 </div>
             </div>

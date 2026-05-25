@@ -18,6 +18,11 @@ interface AdminPanelProps {
   currentPromoImageUrl?: string;
   currentPromoLink?: string;
   currentPromoText?: string;
+  // Footer
+  currentAddress?: string;
+  currentSchedule?: string;
+  currentInstagramUrl?: string;
+  currentFooterText?: string;
   vehicles: Vehicle[];
   onSaveSettings: (settings: AppSettings) => Promise<void>;
   onSaveNumbers: (numbers: string[]) => void;
@@ -46,6 +51,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   currentPromoImageUrl,
   currentPromoLink,
   currentPromoText,
+  // Footer Props
+  currentAddress,
+  currentSchedule,
+  currentInstagramUrl,
+  currentFooterText,
   vehicles,
   onSaveSettings,
   onSaveNumbers,
@@ -76,6 +86,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [promoImageUrl, setPromoImageUrl] = useState(currentPromoImageUrl || '');
   const [promoLink, setPromoLink] = useState(currentPromoLink || '');
   const [promoText, setPromoText] = useState(currentPromoText || '');
+  // Footer State
+  const [address, setAddress] = useState(currentAddress || '');
+  const [schedule, setSchedule] = useState(currentSchedule || '');
+  const [instagramUrl, setInstagramUrl] = useState(currentInstagramUrl || '');
+  const [footerText, setFooterText] = useState(currentFooterText || '');
   const [confirmSoldId, setConfirmSoldId] = useState<string | null>(null);
   const [deliveryPhoto, setDeliveryPhoto] = useState<File | null>(null); // State para foto da entrega
 
@@ -705,6 +720,51 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 </div>
 
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-4">
+                  <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">info</span> Informações do Rodapé / Contatos
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] text-white/50 uppercase font-bold tracking-widest ml-1">Endereço da Loja Física</label>
+                      <input
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-4 py-3 rounded-xl focus:border-gold outline-none"
+                        placeholder="Ex: Av. dos Holandeses, 123 - Calhau, São Luís - MA"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] text-white/50 uppercase font-bold tracking-widest ml-1">Horário de Funcionamento</label>
+                      <input
+                        value={schedule}
+                        onChange={(e) => setSchedule(e.target.value)}
+                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-4 py-3 rounded-xl focus:border-gold outline-none"
+                        placeholder="Ex: Seg a Sex: 08h às 18h | Sáb: 08h às 12h"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] text-white/50 uppercase font-bold tracking-widest ml-1">Link do Instagram</label>
+                      <input
+                        value={instagramUrl}
+                        onChange={(e) => setInstagramUrl(e.target.value)}
+                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-4 py-3 rounded-xl focus:border-gold outline-none"
+                        placeholder="Ex: https://instagram.com/reidasmotos"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] text-white/50 uppercase font-bold tracking-widest ml-1">Texto de Descrição do Rodapé</label>
+                      <textarea
+                        value={footerText}
+                        onChange={(e) => setFooterText(e.target.value)}
+                        rows={2}
+                        className="w-full bg-surface-light border border-white/5 text-white text-xs px-4 py-3 rounded-xl focus:border-gold outline-none resize-none"
+                        placeholder="Ex: Especialistas em realizar sonhos. As melhores motos com as melhores condições."
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-lg">call</span> WhatsApps de Atendimento
@@ -775,7 +835,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       promoActive: promoActive,
                       promoImageUrl: promoImageUrl,
                       promoLink: promoLink,
-                      promoText: promoText
+                      promoText: promoText,
+                      address: address,
+                      schedule: schedule,
+                      instagramUrl: instagramUrl,
+                      footerText: footerText
                     });
                     alert('Configurações salvas com sucesso!');
                   } catch (error) {
@@ -1202,10 +1266,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 {lead.email} <span className="material-symbols-outlined text-[10px]">open_in_new</span>
                               </a>
                             </td>
-                            <td className="p-4">
+                            <td className="p-4 flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  const cleanPhone = lead.email?.replace(/\D/g, '');
+                                  const message = encodeURIComponent(`Olá ${lead.name}! Acabou de entrar uma nova oportunidade no estoque do Rei das Motos! Dê uma olhada no nosso catálogo online: ${window.location.origin}`);
+                                  window.open(`https://api.whatsapp.com/send?phone=55${cleanPhone}&text=${message}`, '_blank');
+                                }}
+                                className="px-3 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-lg text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all"
+                                title="Enviar Alerta de Novidades no WhatsApp"
+                              >
+                                <span className="material-symbols-outlined text-[11px]">send</span> Alerta
+                              </button>
                               <button
                                 onClick={() => handleDeleteLead(lead.id)}
-                                className="w-6 h-6 flex items-center justify-center rounded-full text-white/20 hover:text-red-500 hover:bg-white/10 transition-all"
+                                className="w-8 h-8 flex items-center justify-center rounded-full text-white/20 hover:text-red-500 hover:bg-white/10 transition-all"
                                 title="Excluir Lead"
                               >
                                 <span className="material-symbols-outlined text-sm">delete</span>
