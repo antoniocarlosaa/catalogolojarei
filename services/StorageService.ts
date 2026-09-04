@@ -76,10 +76,17 @@ export class StorageService {
     // Função auxiliar para comprimir imagem antes do upload (Evita timeout e economiza banda)
     private async compressImage(file: File): Promise<File> {
         return new Promise((resolve) => {
+            if (!file.type.startsWith('image/')) {
+                resolve(file); // Não comprime se não for imagem
+                return;
+            }
+
             const reader = new FileReader();
+            reader.onerror = () => resolve(file); // Resolve com o original se falhar a leitura
             reader.readAsDataURL(file);
             reader.onload = (event) => {
                 const img = new Image();
+                img.onerror = () => resolve(file); // Resolve com o original se a imagem for inválida (ex: HEIC no windows)
                 img.src = event.target?.result as string;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
