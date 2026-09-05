@@ -13,17 +13,13 @@ const HeroSearch: React.FC<HeroSearchProps> = ({ backgroundImageUrl, backgroundP
     const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
     useEffect(() => {
-        setActiveBannerIndex(0);
-    }, [bannerImages.length]);
-
-    useEffect(() => {
         if (bannerImages.length <= 1) return;
 
-        const interval = setInterval(() => {
+        const interval = window.setInterval(() => {
             setActiveBannerIndex((prev) => (prev + 1) % bannerImages.length);
         }, 5000);
 
-        return () => clearInterval(interval);
+        return () => window.clearInterval(interval);
     }, [bannerImages.length]);
 
     const currentBanner = bannerImages[activeBannerIndex] || bannerImages[0];
@@ -33,12 +29,12 @@ const HeroSearch: React.FC<HeroSearchProps> = ({ backgroundImageUrl, backgroundP
             <div className="relative w-full overflow-hidden rounded-[2rem] shadow-2xl border border-white/10 bg-[#111111]">
                 <div className="relative h-[300px] sm:h-[380px] md:h-[560px] w-full overflow-hidden bg-black">
                     {currentBanner && (
-                        <div
-                            className="absolute inset-0 bg-cover bg-center transition-all duration-700 ease-in-out"
-                            style={{
-                                backgroundImage: `url(${currentBanner})`,
-                                backgroundPosition: backgroundPosition || '50% 50%',
-                            }}
+                        <img
+                            key={currentBanner}
+                            src={currentBanner}
+                            alt="Banner promocional"
+                            className="absolute inset-0 h-full w-full object-cover object-center animate-[fadeIn_0.7s_ease-in-out]"
+                            style={{ objectPosition: backgroundPosition || '50% 50%' }}
                         />
                     )}
 
