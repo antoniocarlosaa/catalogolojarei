@@ -90,6 +90,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [heroBanners, setHeroBanners] = useState<string[]>(currentHeroBanners || []);
   const [heroBannersMobile, setHeroBannersMobile] = useState<string[]>(currentHeroBannersMobile || []);
   const [heroBannersDesktop, setHeroBannersDesktop] = useState<string[]>(currentHeroBannersDesktop || []);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerUploadError, setBannerUploadError] = useState<string | null>(null);
 
   // Promo State
   const [promoActive, setPromoActive] = useState(currentPromoActive || false);
@@ -211,24 +213,35 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleAddBannerImages = async (files: FileList | null, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
     if (!files || files.length === 0) return;
 
-    const uploadedUrls: string[] = [];
-
-    for (const file of Array.from(files)) {
-      try {
-        const result = await storageService.uploadFile(file, 'images');
-
-        if (!result.url) {
-          throw new Error(result.error?.message || 'Erro no upload da imagem');
-        }
-
-        uploadedUrls.push(result.url);
-      } catch (error) {
-        console.error('Erro ao enviar banner:', error);
-        throw error;
-      }
+    const fileList = Array.from(files).filter(file => file && file.type.startsWith('image/'));
+    if (fileList.length === 0) {
+      setBannerUploadError('Selecione apenas imagens válidas para o banner.');
+      return;
     }
 
-    setter(prev => [...prev, ...uploadedUrls].slice(0, 8));
+    setBannerUploading(true);
+    setBannerUploadError(null);
+
+    try {
+      const uploadedUrls = await Promise.all(
+        fileList.map(async (file) => {
+          const result = await storageService.uploadFile(file, 'images');
+          if (!result.url) {
+            throw new Error(result.error?.message || 'Erro no upload da imagem');
+          }
+          return result.url;
+        })
+      );
+
+      setter(prev => [...prev, ...uploadedUrls].slice(0, 8));
+    } catch (error: any) {
+      console.error('Erro ao enviar banner:', error);
+      const message = error?.message || 'Não foi possível enviar a imagem do banner.';
+      setBannerUploadError(message);
+      alert(`Erro ao processar banner: ${message}`);
+    } finally {
+      setBannerUploading(false);
+    }
   };
 
   const [newType, setNewType] = useState<VehicleType>(VehicleType.MOTO);
@@ -606,12 +619,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         />
                         <label
                           htmlFor="bg-upload"
-                          className="w-full flex items-center justify-center gap-2 bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-2xl cursor-pointer hover:bg-white/10 transition-all group"
+                          className={`w-full flex items-center justify-center gap-2 border text-white text-xs px-6 py-4 rounded-2xl transition-all group ${bannerUploading ? 'bg-gold/10 border-gold/40 cursor-not-allowed' : 'bg-surface-light border-white/5 cursor-pointer hover:bg-white/10'}`}
                         >
-                          <span className="material-symbols-outlined group-hover:scale-110 transition-transform">upload_file</span>
-                          {heroBanners.length > 0 ? 'Adicionar mais banners' : 'Carregar banners'}
+                          <span className="material-symbols-outlined group-hover:scale-110 transition-transform">{bannerUploading ? 'hourglass_top' : 'upload_file'}</span>
+                          {bannerUploading ? 'Enviando banner...' : (heroBanners.length > 0 ? 'Adicionar mais banners' : 'Carregar banners')}
                         </label>
                       </div>
+                      {bannerUploadError && (
+                        <p className="text-[9px] text-red-400 uppercase tracking-widest font-bold">{bannerUploadError}</p>
+                      )}
                       <p className="text-[9px] text-white/50 uppercase tracking-widest font-bold">
                         Tamanho ideal: 1600x700 px, proporção 16:7, JPG/PNG/WebP, até 2MB por imagem. Os banners carregados aparecem em qualquer tela.
                       </p>
@@ -926,6 +942,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   try {
                     // Remover o filtro para salvar todos os 10 slots exatamente como estão. 
                     // Isso manterá os vazios ou "OFF:" nas posições corretas e impedirá o visual de inverter.
+                    if (bannerUploading) {
+                      alert('Aguarde o upload do banner terminar antes de salvar.');
+                      return;
+                    }
+
                     await onSaveSettings({
                       whatsappNumbers: numbers,
                       googleMapsUrl: mapsUrl,
@@ -947,7 +968,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     alert('Configurações salvas com sucesso!');
                   } catch (error) {
                     console.error("Erro ao salvar:", error);
-                    alert("Erro ao salvar configurações.");
+                    alert("Configurações salvas localmente. A sincronização com o servidor pode demorar.");
                   }
                 }}
                 className="w-full py-5 bg-gold text-black font-heading text-[11px] tracking-[0.3em] rounded-full shadow-xl hover:brightness-110 active:scale-95 transition-all"

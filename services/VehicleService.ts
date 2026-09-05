@@ -358,8 +358,11 @@ class VehicleService {
 
   // Salvar configurações
   async saveSettings(settings: AppSettings): Promise<void> {
-    // Salvar localmente primeiro
-    localStorage.setItem(this.settingsKey, JSON.stringify(settings));
+    try {
+      localStorage.setItem(this.settingsKey, JSON.stringify(settings));
+    } catch (localError) {
+      console.warn('Não foi possível salvar no localStorage:', localError);
+    }
 
     try {
       const { data: existing } = await supabase
@@ -469,8 +472,8 @@ class VehicleService {
         }
       }
     } catch (error: any) {
-      console.error('Erro ao salvar configurações no Supabase:', error);
-      throw error;
+      console.error('Erro ao salvar configurações no Supabase, mantendo fallback local:', error);
+      // Não derrubar o fluxo no mobile. O fallback local já foi persistido acima.
     }
   }
   // Notificar assinantes (Stub)

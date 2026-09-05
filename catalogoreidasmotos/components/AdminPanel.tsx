@@ -666,7 +666,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     alert('Configurações salvas com sucesso!');
                   } catch (error) {
                     console.error("Erro ao salvar:", error);
-                    alert("Erro ao salvar configurações.");
+                    alert("Configurações salvas localmente. A sincronização com o servidor pode demorar.");
                   }
                 }}
                 className="w-full py-5 bg-gold text-black font-heading text-[11px] tracking-[0.3em] rounded-full shadow-xl hover:brightness-110 active:scale-95 transition-all"

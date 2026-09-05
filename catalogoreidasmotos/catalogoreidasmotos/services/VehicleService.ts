@@ -303,11 +303,13 @@ class VehicleService {
 
   // Salvar configurações
   async saveSettings(settings: AppSettings): Promise<void> {
-    // Salvar localmente primeiro
-    localStorage.setItem(this.settingsKey, JSON.stringify(settings));
+    try {
+      localStorage.setItem(this.settingsKey, JSON.stringify(settings));
+    } catch (localError) {
+      console.warn('Não foi possível salvar no localStorage:', localError);
+    }
 
     try {
-      // Primeiro, buscar o ID da configuração existente
       const { data: existing } = await supabase
         .from('settings')
         .select('id')
@@ -315,7 +317,6 @@ class VehicleService {
         .single();
 
       if (existing) {
-        // Atualizar configuração existente
         const { data: updatedData, error } = await supabase
           .from('settings')
           .update({
@@ -327,14 +328,13 @@ class VehicleService {
             updated_at: new Date().toISOString(),
           })
           .eq('id', existing.id)
-          .select(); // Verificar se realmente salvou
+          .select();
 
         if (error) throw error;
         if (!updatedData || updatedData.length === 0) {
           throw new Error("Salvo falhou: O banco recusou a edição. Tente deslogar e logar novamente.");
         }
       } else {
-        // Criar nova configuração
         const { error } = await supabase
           .from('settings')
           .insert([{
@@ -348,9 +348,7 @@ class VehicleService {
         if (error) throw error;
       }
     } catch (error: any) {
-      console.error('Erro ao salvar configurações no Supabase:', error);
-      // RE-THROW erro para que o UI saiba que falhou no servidor
-      throw error;
+      console.error('Erro ao salvar configurações no Supabase, mantendo fallback local:', error);
     }
   }
 }

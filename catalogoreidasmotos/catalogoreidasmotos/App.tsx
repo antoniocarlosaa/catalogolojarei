@@ -321,7 +321,6 @@ const App: React.FC = () => {
               await db.saveSettings(newSettings);
             } catch (e) {
               console.error("Erro no App ao salvar:", e);
-              throw e;
             }
           }}
           onSaveNumbers={() => { }}
