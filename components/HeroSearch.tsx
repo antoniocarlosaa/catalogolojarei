@@ -13,6 +13,10 @@ const HeroSearch: React.FC<HeroSearchProps> = ({ backgroundImageUrl, backgroundP
     const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
     useEffect(() => {
+        setActiveBannerIndex(0);
+    }, [bannerImages.length]);
+
+    useEffect(() => {
         if (bannerImages.length <= 1) return;
 
         const interval = setInterval(() => {
@@ -26,73 +30,65 @@ const HeroSearch: React.FC<HeroSearchProps> = ({ backgroundImageUrl, backgroundP
 
     return (
         <div className="relative w-full max-w-[1400px] mx-auto mt-32 md:mt-28 mb-8 px-4">
-            <div className="relative w-full rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 group bg-[#0d0d0d] flex flex-col md:flex-row md:items-center min-h-auto md:min-h-[500px]">
-                {currentBanner && (
-                    <>
+            <div className="relative w-full overflow-hidden rounded-[2rem] shadow-2xl border border-white/10 bg-[#111111]">
+                <div className="relative h-[300px] sm:h-[380px] md:h-[560px] w-full overflow-hidden bg-black">
+                    {currentBanner && (
                         <div
-                            className="md:hidden w-full h-[250px] sm:h-[350px] bg-cover bg-center"
-                            style={{ backgroundImage: `url(${currentBanner})`, backgroundPosition: backgroundPosition || '50% 50%' }}
-                        />
-                        <div
-                            className="hidden md:block absolute inset-0 bg-cover bg-center z-0 transition-transform duration-1000 group-hover:scale-105"
+                            className="absolute inset-0 bg-cover bg-center transition-all duration-700 ease-in-out"
                             style={{
                                 backgroundImage: `url(${currentBanner})`,
                                 backgroundPosition: backgroundPosition || '50% 50%',
                             }}
                         />
-                    </>
-                )}
+                    )}
 
-                <div className="hidden md:block absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-transparent z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/20" />
 
-                {bannerImages.length > 1 && (
-                    <div className="absolute right-4 top-4 z-20 flex items-center gap-2 md:right-6 md:top-6">
-                        {bannerImages.map((_, index) => (
-                            <button
-                                key={index}
-                                type="button"
-                                onClick={() => setActiveBannerIndex(index)}
-                                aria-label={`Banner ${index + 1}`}
-                                className={`h-2.5 rounded-full transition-all ${index === activeBannerIndex ? 'w-8 bg-gold' : 'w-2.5 bg-white/40 hover:bg-white/70'}`}
-                            />
-                        ))}
-                    </div>
-                )}
-
-                <div className="relative z-20 p-6 md:p-12 lg:p-16 w-full md:max-w-3xl flex flex-col gap-5 md:gap-6 bg-surface md:bg-transparent">
-                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-heading text-white font-bold leading-tight drop-shadow-lg">
-                        Encontre sua próxima moto na <span className="text-gold">Rei das Motos</span>
-                    </h1>
-
-                    <p className="text-base md:text-xl text-white/90 font-medium drop-shadow-md">
-                        Escolha sua moto e fale conosco para verificar entrada, parcelas e aprovação.
-                    </p>
-
-                    <div className="flex flex-col sm:flex-row gap-4 mt-2 md:mt-4">
-                        <button
-                            onClick={onViewStock}
-                            className="px-6 md:px-8 py-4 bg-gold hover:bg-yellow-400 text-black font-bold uppercase tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:scale-105"
-                        >
-                            Ver estoque
-                        </button>
-                        <button
-                            onClick={onWhatsAppClick}
-                            className="px-6 md:px-8 py-4 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold uppercase tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(37,211,102,0.3)] hover:scale-105 flex items-center justify-center gap-2"
-                        >
-                            <span className="material-symbols-outlined">chat</span>
-                            Falar no WhatsApp
-                        </button>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 md:gap-4 sm:gap-6 mt-4 md:mt-6">
-                        <div className="flex items-center gap-2 text-white text-sm md:text-base font-medium bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm border border-white/5 w-fit">
-                            <span className="text-[#25D366] font-bold">✓</span> Aprovação rápida
+                    {bannerImages.length > 1 && (
+                        <div className="absolute right-4 top-4 z-20 flex items-center gap-2 md:right-6 md:top-6">
+                            {bannerImages.map((_, index) => (
+                                <button
+                                    key={index}
+                                    type="button"
+                                    onClick={() => setActiveBannerIndex(index)}
+                                    aria-label={`Banner ${index + 1}`}
+                                    className={`h-2.5 rounded-full transition-all ${index === activeBannerIndex ? 'w-8 bg-gold' : 'w-2.5 bg-white/40 hover:bg-white/70'}`}
+                                />
+                            ))}
                         </div>
-                        <div className="flex items-center gap-2 text-white text-sm md:text-base font-medium bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm border border-white/5 w-fit">
-                            <span className="text-[#25D366] font-bold">✓</span> Entrada facilitada
-                        </div>
-                        <div className="flex items-center gap-2 text-white text-sm md:text-base font-medium bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm border border-white/5 w-fit">
-                            <span className="text-[#25D366] font-bold">✓</span> Atendimento humanizado
+                    )}
+
+                    <div className="relative z-20 flex h-full items-center px-6 py-8 md:px-12 lg:px-16">
+                        <div className="max-w-xl">
+                            <span className="inline-flex items-center rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] text-gold">
+                                Aproveite agora
+                            </span>
+
+                            <h1 className="mt-4 text-3xl font-black uppercase leading-[0.9] tracking-[-0.05em] text-white md:text-5xl lg:text-7xl">
+                                Nossas
+                                <span className="block text-gold">ofertas</span>
+                                <span className="block text-white">de seminovos</span>
+                            </h1>
+
+                            <p className="mt-4 max-w-md text-sm text-white/85 md:text-lg">
+                                Escolha sua moto e fale conosco para verificar entrada, parcelas e aprovação.
+                            </p>
+
+                            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                                <button
+                                    onClick={onViewStock}
+                                    className="px-6 py-3 bg-gold hover:bg-yellow-400 text-black font-bold uppercase tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:scale-105"
+                                >
+                                    Ver estoque
+                                </button>
+                                <button
+                                    onClick={onWhatsAppClick}
+                                    className="px-6 py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold uppercase tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(37,211,102,0.3)] hover:scale-105 flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined">chat</span>
+                                    Falar no WhatsApp
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
