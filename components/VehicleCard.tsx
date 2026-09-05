@@ -127,20 +127,6 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
           </div>
         )}
 
-        {/* OVERLAY CONTENT FOR FEATURED VARIANT */}
-        {isFeatured && (
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent pointer-events-none flex flex-col justify-end p-4">
-            <div className="transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-              <h4 className="text-lg md:text-xl font-heading text-white font-bold tracking-tight uppercase leading-none drop-shadow-lg">
-                {vehicle.name}
-              </h4>
-              <p className="text-gold font-bold text-lg mt-1 drop-shadow-md">
-                {typeof vehicle.price === 'number' ? `R$ ${vehicle.price.toLocaleString('pt-BR')}` : vehicle.price}
-              </p>
-            </div>
-          </div>
-        )}
-
         <div className={`absolute ${isFeatured ? 'top-3 left-3' : 'bottom-2 left-2'} z-20 flex items-center justify-center w-8 h-8 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-gold pointer-events-none`}>
           <span className="material-symbols-outlined text-sm">
             {vehicle.type === VehicleType.MOTO ? 'motorcycle' : 'directions_car'}
@@ -185,8 +171,28 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onInterest, onClick,
 
       </div>
 
-      {/* INFO CONTENT FOR DEFAULT VARIANT */}
-      {!isFeatured && (
+      {isFeatured ? (
+        <div className="p-4 flex flex-col gap-3">
+          <h4 className="text-base md:text-lg font-heading text-white font-bold tracking-tight uppercase leading-snug line-clamp-2 group-hover:text-gold transition-colors cursor-pointer" onClick={onClick}>
+            {vehicle.name}
+          </h4>
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-gold font-bold text-lg md:text-xl leading-tight">
+              {typeof vehicle.price === 'number' ? `R$ ${vehicle.price.toLocaleString('pt-BR')}` : vehicle.price}
+            </p>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onInterest(vehicle, 'quero');
+              }}
+              className="px-3 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all"
+            >
+              Quero
+            </button>
+          </div>
+        </div>
+      ) : (
         <div className="p-4 flex flex-col flex-1 gap-1">
 
           <h4 className="text-sm font-heading text-white font-semibold tracking-tight uppercase leading-snug line-clamp-2 h-[2.5em] mb-1 group-hover:text-gold transition-colors cursor-pointer" onClick={onClick}>

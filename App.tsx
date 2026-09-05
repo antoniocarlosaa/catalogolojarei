@@ -22,7 +22,11 @@ const App: React.FC = () => {
   const { user } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null); // State Global do Modal
-  const [settings, setSettings] = useState<AppSettings>({ whatsappNumbers: [], googleMapsUrl: '' });
+  const [settings, setSettings] = useState<AppSettings>({
+    whatsappNumbers: [],
+    googleMapsUrl: '',
+    heroBanners: []
+  });
   const [loading, setLoading] = useState(true);
   const [visitCount, setVisitCount] = useState(0);
   const [filter, setFilter] = useState<CategoryFilter>('TUDO');
@@ -252,6 +256,7 @@ const App: React.FC = () => {
         <HeroSearch
           backgroundImageUrl={settings.backgroundImageUrl}
           backgroundPosition={settings.backgroundPosition}
+          heroBanners={settings.heroBanners || []}
           onViewStock={() => {
             document.getElementById('estoque-section')?.scrollIntoView({ behavior: 'smooth' });
           }}
@@ -513,6 +518,7 @@ const App: React.FC = () => {
           currentBackgroundImageUrl={settings.backgroundImageUrl}
           currentBackgroundPosition={settings.backgroundPosition}
           currentCardImageFit={settings.cardImageFit}
+          currentHeroBanners={settings.heroBanners || []}
           currentPromoActive={settings.promoActive}
           currentPromoImageUrl={settings.promoImageUrl}
           currentPromoLink={settings.promoLink}

@@ -13,6 +13,7 @@ interface AdminPanelProps {
   currentBackgroundImageUrl?: string;
   currentBackgroundPosition?: string;
   currentCardImageFit?: 'cover' | 'contain';
+  currentHeroBanners?: string[];
   // Promo
   currentPromoActive?: boolean;
   currentPromoImageUrl?: string;
@@ -30,6 +31,7 @@ interface AdminPanelProps {
   onSaveBackgroundImageUrl: (url: string) => void;
   onSaveBackgroundPosition: (pos: string) => void;
   onSaveCardImageFit: (fit: 'cover' | 'contain') => void;
+  onSaveHeroBanners?: (urls: string[]) => void;
   // Promo
   onSavePromoActive: (active: boolean) => void;
   onSavePromoImage: (url: string) => void;
@@ -46,6 +48,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   currentBackgroundImageUrl,
   currentBackgroundPosition,
   currentCardImageFit,
+  currentHeroBanners,
   // Promo Props
   currentPromoActive,
   currentPromoImageUrl,
@@ -80,6 +83,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [backgroundImageUrl, setBackgroundImageUrl] = useState(currentBackgroundImageUrl || '');
   const [backgroundPos, setBackgroundPos] = useState(currentBackgroundPosition || '50% 50%');
   const [cardImageFit, setCardImageFit] = useState<'cover' | 'contain'>(currentCardImageFit || 'cover');
+  const [heroBanners, setHeroBanners] = useState<string[]>(currentHeroBanners || []);
 
   // Promo State
   const [promoActive, setPromoActive] = useState(currentPromoActive || false);
@@ -184,6 +188,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       await logger.clearAccessLogs();
       setAccessLogs([]);
     } catch (e) { alert("Erro ao limpar logs."); }
+  };
+
+  useEffect(() => {
+    setHeroBanners(currentHeroBanners || []);
+  }, [currentHeroBanners]);
+
+  const handleAddBannerImages = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const newUrls = await Promise.all(
+      Array.from(files).map(async (file) => {
+        const base64 = await fileToBase64(file);
+        return base64;
+      })
+    );
+
+    setHeroBanners(prev => [...prev, ...newUrls].slice(0, 8));
   };
 
   const [newType, setNewType] = useState<VehicleType>(VehicleType.MOTO);
@@ -540,7 +561,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                 <div>
                   <h3 className="text-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-lg">wallpaper</span> Plano de Fundo (Home)
+                    <span className="material-symbols-outlined text-lg">wallpaper</span> Banner Topo (Troca Automática)
                   </h3>
                   <div className="space-y-4">
                     <div className="relative">
@@ -548,15 +569,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         type="file"
                         accept="image/*"
                         id="bg-upload"
+                        multiple
                         onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            try {
-                              const base64 = await fileToBase64(file);
-                              setBackgroundImageUrl(base64);
-                            } catch (err) {
-                              alert("Erro ao processar imagem");
-                            }
+                          try {
+                            await handleAddBannerImages(e.target.files);
+                          } catch (err) {
+                            alert("Erro ao processar imagem");
                           }
                         }}
                         className="hidden"
@@ -566,59 +584,109 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         className="w-full flex items-center justify-center gap-2 bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-2xl cursor-pointer hover:bg-white/10 transition-all group"
                       >
                         <span className="material-symbols-outlined group-hover:scale-110 transition-transform">upload_file</span>
-                        {backgroundImageUrl ? 'Trocar Imagem' : 'Carregar do Dispositivo'}
+                        {heroBanners.length > 0 ? 'Adicionar mais banners' : 'Carregar banners'}
                       </label>
                     </div>
 
-                    {backgroundImageUrl && (
+                    {heroBanners.length > 0 && (
                       <div className="space-y-3">
-                        <div className="relative w-full h-48 rounded-xl overflow-hidden border border-white/10 group bg-black/50">
-                          <img
-                            src={backgroundImageUrl}
-                            alt="Preview"
-                            className="w-full h-full object-cover opacity-80 transition-all"
-                            style={{ objectPosition: backgroundPos }}
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className="text-[10px] text-white/50 bg-black/50 px-3 py-1 rounded-full uppercase tracking-widest">Preview</span>
-                          </div>
-                          <button
-                            onClick={() => setBackgroundImageUrl('')}
-                            className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
-                            title="Remover Imagem"
-                          >
-                            <span className="material-symbols-outlined text-sm">close</span>
-                          </button>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-1 block">Posição Horizontal</label>
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={parseInt(backgroundPos.split(' ')[0])}
-                              onChange={(e) => setBackgroundPos(`${e.target.value}% ${backgroundPos.split(' ')[1]}`)}
-                              className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                            />
-                            <div className="text-right text-[9px] text-white/50 mt-1">{backgroundPos.split(' ')[0]}</div>
-                          </div>
-                          <div>
-                            <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-1 block">Posição Vertical</label>
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={parseInt(backgroundPos.split(' ')[1])}
-                              onChange={(e) => setBackgroundPos(`${backgroundPos.split(' ')[0]} ${e.target.value}%`)}
-                              className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                            />
-                            <div className="text-right text-[9px] text-white/50 mt-1">{backgroundPos.split(' ')[1]}</div>
-                          </div>
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                          {heroBanners.map((image, idx) => (
+                            <div key={`${image}-${idx}`} className="relative h-24 rounded-xl overflow-hidden border border-white/10 group bg-black/50">
+                              <img src={image} alt={`Banner ${idx + 1}`} className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => setHeroBanners(prev => prev.filter((_, i) => i !== idx))}
+                                className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-red-500/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Remover banner"
+                              >
+                                <span className="material-symbols-outlined text-sm">close</span>
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
+
+                    <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                      <h4 className="text-[9px] text-gold uppercase font-bold tracking-widest mb-3">Imagem principal de fundo</h4>
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            id="bg-upload-single"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  const base64 = await fileToBase64(file);
+                                  setBackgroundImageUrl(base64);
+                                } catch (err) {
+                                  alert("Erro ao processar imagem");
+                                }
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor="bg-upload-single"
+                            className="w-full flex items-center justify-center gap-2 bg-surface-light border border-white/5 text-white text-xs px-6 py-3 rounded-xl cursor-pointer hover:bg-white/10 transition-all group"
+                          >
+                            <span className="material-symbols-outlined group-hover:scale-110 transition-transform">upload_file</span>
+                            {backgroundImageUrl ? 'Trocar imagem de fundo' : 'Carregar imagem fixa'}
+                          </label>
+                        </div>
+
+                        {backgroundImageUrl && (
+                          <div className="relative w-full h-36 rounded-xl overflow-hidden border border-white/10 group bg-black/50">
+                            <img
+                              src={backgroundImageUrl}
+                              alt="Preview"
+                              className="w-full h-full object-cover opacity-80 transition-all"
+                              style={{ objectPosition: backgroundPos }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setBackgroundImageUrl('')}
+                              className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                              title="Remover Imagem"
+                            >
+                              <span className="material-symbols-outlined text-sm">close</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {backgroundImageUrl && (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-1 block">Posição Horizontal</label>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={parseInt(backgroundPos.split(' ')[0])}
+                                onChange={(e) => setBackgroundPos(`${e.target.value}% ${backgroundPos.split(' ')[1]}`)}
+                                className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                              />
+                              <div className="text-right text-[9px] text-white/50 mt-1">{backgroundPos.split(' ')[0]}</div>
+                            </div>
+                            <div>
+                              <label className="text-[9px] text-gold uppercase font-bold tracking-widest mb-1 block">Posição Vertical</label>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={parseInt(backgroundPos.split(' ')[1])}
+                                onChange={(e) => setBackgroundPos(`${backgroundPos.split(' ')[0]} ${e.target.value}%`)}
+                                className="w-full accent-gold h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                              />
+                              <div className="text-right text-[9px] text-white/50 mt-1">{backgroundPos.split(' ')[1]}</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -832,6 +900,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       backgroundImageUrl: backgroundImageUrl,
                       backgroundPosition: backgroundPos,
                       cardImageFit: cardImageFit,
+                      heroBanners: heroBanners,
                       promoActive: promoActive,
                       promoImageUrl: promoImageUrl,
                       promoLink: promoLink,

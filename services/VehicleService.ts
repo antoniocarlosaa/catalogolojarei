@@ -287,12 +287,27 @@ class VehicleService {
 
       const local = this.getFallbackSettings();
 
+      const parsedHeroBanners = (() => {
+        const raw = data?.hero_banners;
+        if (Array.isArray(raw)) return raw.filter(Boolean);
+        if (typeof raw === 'string') {
+          try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+          } catch {
+            return [];
+          }
+        }
+        return Array.isArray(local.heroBanners) ? local.heroBanners.filter(Boolean) : [];
+      })();
+
       return {
         whatsappNumbers: data?.whatsapp_numbers || local.whatsappNumbers || [],
         googleMapsUrl: data?.google_maps_url || local.googleMapsUrl || '',
         backgroundImageUrl: data?.background_image_url || local.backgroundImageUrl || '',
         backgroundPosition: data?.background_position || local.backgroundPosition || '50% 50%',
         cardImageFit: data?.card_image_fit || local.cardImageFit || 'cover',
+        heroBanners: parsedHeroBanners,
         promoActive: data?.promo_active ?? local.promoActive ?? false,
         promoImageUrl: data?.promo_image_url || local.promoImageUrl || '',
         promoLink: data?.promo_link || local.promoLink || '',
@@ -315,12 +330,13 @@ class VehicleService {
       console.log('Usando configurações do localStorage');
       return JSON.parse(localData);
     }
-    return { 
-      whatsappNumbers: [], 
-      googleMapsUrl: '', 
-      backgroundImageUrl: '', 
-      backgroundPosition: '50% 50%', 
+    return {
+      whatsappNumbers: [],
+      googleMapsUrl: '',
+      backgroundImageUrl: '',
+      backgroundPosition: '50% 50%',
       cardImageFit: 'cover',
+      heroBanners: [],
       address: 'Rua Principal, 123 - Centro, São Luís - MA',
       schedule: 'Seg a Sex: 08h às 18h | Sáb: 08h às 12h',
       instagramUrl: 'https://instagram.com/reidasmotos',
@@ -341,54 +357,94 @@ class VehicleService {
         .limit(1)
         .single();
 
+      const safeHeroBanners = JSON.stringify(settings.heroBanners || []);
+
       if (existing) {
-        // Atualizar configuração existente
+        const basicPayload = {
+          whatsapp_numbers: settings.whatsappNumbers,
+          google_maps_url: settings.googleMapsUrl,
+          background_image_url: settings.backgroundImageUrl,
+          background_position: settings.backgroundPosition,
+          card_image_fit: settings.cardImageFit,
+          promo_active: settings.promoActive,
+          promo_image_url: settings.promoImageUrl,
+          promo_link: settings.promoLink,
+          promo_text: settings.promoText,
+          address: settings.address,
+          schedule: settings.schedule,
+          instagram_url: settings.instagramUrl,
+          footer_text: settings.footerText,
+          updated_at: new Date().toISOString(),
+        };
+
         const { data: updatedData, error } = await supabase
           .from('settings')
-          .update({
-            whatsapp_numbers: settings.whatsappNumbers,
-            google_maps_url: settings.googleMapsUrl,
-            background_image_url: settings.backgroundImageUrl,
-            background_position: settings.backgroundPosition,
-            card_image_fit: settings.cardImageFit,
-            promo_active: settings.promoActive,
-            promo_image_url: settings.promoImageUrl,
-            promo_link: settings.promoLink,
-            promo_text: settings.promoText,
-            address: settings.address,
-            schedule: settings.schedule,
-            instagram_url: settings.instagramUrl,
-            footer_text: settings.footerText,
-            updated_at: new Date().toISOString(),
-          })
+          .update(basicPayload)
           .eq('id', existing.id)
-          .select(); // Verificar se realmente salvou
+          .select();
 
         if (error) throw error;
         if (!updatedData || updatedData.length === 0) {
           throw new Error("Salvo falhou: O banco recusou a edição. Tente deslogar e logar novamente.");
         }
-      } else {
-        // Criar nova configuração
-        const { error } = await supabase
-          .from('settings')
-          .insert([{
-            whatsapp_numbers: settings.whatsappNumbers,
-            google_maps_url: settings.googleMapsUrl,
-            background_image_url: settings.backgroundImageUrl,
-            background_position: settings.backgroundPosition,
-            card_image_fit: settings.cardImageFit,
-            promo_active: settings.promoActive,
-            promo_image_url: settings.promoImageUrl,
-            promo_link: settings.promoLink,
-            promo_text: settings.promoText,
-            address: settings.address,
-            schedule: settings.schedule,
-            instagram_url: settings.instagramUrl,
-            footer_text: settings.footerText,
-          }]);
 
-        if (error) throw error;
+        try {
+          await supabase
+            .from('settings')
+            .update({ hero_banners: safeHeroBanners })
+            .eq('id', existing.id);
+        } catch (extraError) {
+          console.warn('Campo hero_banners não está disponível no banco; mantendo em localStorage.', extraError);
+        }
+      } else {
+        const insertPayload = {
+          whatsapp_numbers: settings.whatsappNumbers,
+          google_maps_url: settings.googleMapsUrl,
+          background_image_url: settings.backgroundImageUrl,
+          background_position: settings.backgroundPosition,
+          card_image_fit: settings.cardImageFit,
+          promo_active: settings.promoActive,
+          promo_image_url: settings.promoImageUrl,
+          promo_link: settings.promoLink,
+          promo_text: settings.promoText,
+          address: settings.address,
+          schedule: settings.schedule,
+          instagram_url: settings.instagramUrl,
+          footer_text: settings.footerText,
+          hero_banners: safeHeroBanners,
+        };
+
+        try {
+          const { error } = await supabase
+            .from('settings')
+            .insert([insertPayload]);
+
+          if (error) throw error;
+        } catch (insertError) {
+          const fallbackError = insertError as Error;
+          if (fallbackError?.message?.includes('hero_banners')) {
+            const { error } = await supabase
+              .from('settings')
+              .insert([{
+                whatsapp_numbers: settings.whatsappNumbers,
+                google_maps_url: settings.googleMapsUrl,
+                background_image_url: settings.backgroundImageUrl,
+                background_position: settings.backgroundPosition,
+                card_image_fit: settings.cardImageFit,
+                promo_active: settings.promoActive,
+                promo_image_url: settings.promoImageUrl,
+                promo_link: settings.promoLink,
+                promo_text: settings.promoText,
+                address: settings.address,
+                schedule: settings.schedule,
+                instagram_url: settings.instagramUrl,
+                footer_text: settings.footerText,
+              }]);
+            if (error) throw error;
+            return;
+          }
+          throw insertError;
+        }
       }
     } catch (error: any) {
       console.error('Erro ao salvar configurações no Supabase:', error);
