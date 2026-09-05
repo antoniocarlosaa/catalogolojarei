@@ -14,6 +14,8 @@ interface AdminPanelProps {
   currentBackgroundPosition?: string;
   currentCardImageFit?: 'cover' | 'contain';
   currentHeroBanners?: string[];
+  currentHeroBannersMobile?: string[];
+  currentHeroBannersDesktop?: string[];
   // Promo
   currentPromoActive?: boolean;
   currentPromoImageUrl?: string;
@@ -49,6 +51,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   currentBackgroundPosition,
   currentCardImageFit,
   currentHeroBanners,
+  currentHeroBannersMobile,
+  currentHeroBannersDesktop,
   // Promo Props
   currentPromoActive,
   currentPromoImageUrl,
@@ -84,6 +88,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [backgroundPos, setBackgroundPos] = useState(currentBackgroundPosition || '50% 50%');
   const [cardImageFit, setCardImageFit] = useState<'cover' | 'contain'>(currentCardImageFit || 'cover');
   const [heroBanners, setHeroBanners] = useState<string[]>(currentHeroBanners || []);
+  const [heroBannersMobile, setHeroBannersMobile] = useState<string[]>(currentHeroBannersMobile || []);
+  const [heroBannersDesktop, setHeroBannersDesktop] = useState<string[]>(currentHeroBannersDesktop || []);
 
   // Promo State
   const [promoActive, setPromoActive] = useState(currentPromoActive || false);
@@ -194,17 +200,35 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     setHeroBanners(currentHeroBanners || []);
   }, [currentHeroBanners]);
 
-  const handleAddBannerImages = async (files: FileList | null) => {
+  useEffect(() => {
+    setHeroBannersMobile(currentHeroBannersMobile || []);
+  }, [currentHeroBannersMobile]);
+
+  useEffect(() => {
+    setHeroBannersDesktop(currentHeroBannersDesktop || []);
+  }, [currentHeroBannersDesktop]);
+
+  const handleAddBannerImages = async (files: FileList | null, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
     if (!files || files.length === 0) return;
 
-    const newUrls = await Promise.all(
-      Array.from(files).map(async (file) => {
-        const base64 = await fileToBase64(file);
-        return base64;
-      })
-    );
+    const uploadedUrls: string[] = [];
 
-    setHeroBanners(prev => [...prev, ...newUrls].slice(0, 8));
+    for (const file of Array.from(files)) {
+      try {
+        const result = await storageService.uploadFile(file, 'images');
+
+        if (!result.url) {
+          throw new Error(result.error?.message || 'Erro no upload da imagem');
+        }
+
+        uploadedUrls.push(result.url);
+      } catch (error) {
+        console.error('Erro ao enviar banner:', error);
+        throw error;
+      }
+    }
+
+    setter(prev => [...prev, ...uploadedUrls].slice(0, 8));
   };
 
   const [newType, setNewType] = useState<VehicleType>(VehicleType.MOTO);
@@ -564,28 +588,33 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     <span className="material-symbols-outlined text-lg">wallpaper</span> Banner Topo (Troca Automática)
                   </h3>
                   <div className="space-y-4">
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        id="bg-upload"
-                        multiple
-                        onChange={async (e) => {
-                          try {
-                            await handleAddBannerImages(e.target.files);
-                          } catch (err) {
-                            alert("Erro ao processar imagem");
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <label
-                        htmlFor="bg-upload"
-                        className="w-full flex items-center justify-center gap-2 bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-2xl cursor-pointer hover:bg-white/10 transition-all group"
-                      >
-                        <span className="material-symbols-outlined group-hover:scale-110 transition-transform">upload_file</span>
-                        {heroBanners.length > 0 ? 'Adicionar mais banners' : 'Carregar banners'}
-                      </label>
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="bg-upload"
+                          multiple
+                          onChange={async (e) => {
+                            try {
+                              await handleAddBannerImages(e.target.files, setHeroBanners);
+                            } catch (err) {
+                              alert("Erro ao processar imagem");
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="bg-upload"
+                          className="w-full flex items-center justify-center gap-2 bg-surface-light border border-white/5 text-white text-xs px-6 py-4 rounded-2xl cursor-pointer hover:bg-white/10 transition-all group"
+                        >
+                          <span className="material-symbols-outlined group-hover:scale-110 transition-transform">upload_file</span>
+                          {heroBanners.length > 0 ? 'Adicionar mais banners' : 'Carregar banners'}
+                        </label>
+                      </div>
+                      <p className="text-[9px] text-white/50 uppercase tracking-widest font-bold">
+                        Tamanho ideal: 1600x700 px, proporção 16:7, JPG/PNG/WebP, até 2MB por imagem. Os banners carregados aparecem em qualquer tela.
+                      </p>
                     </div>
 
                     {heroBanners.length > 0 && (
@@ -620,8 +649,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                               const file = e.target.files?.[0];
                               if (file) {
                                 try {
-                                  const base64 = await fileToBase64(file);
-                                  setBackgroundImageUrl(base64);
+                                  const result = await storageService.uploadFile(file, 'images');
+                                  if (!result.url) {
+                                    throw new Error(result.error?.message || 'Erro no upload da imagem');
+                                  }
+                                  setBackgroundImageUrl(result.url);
                                 } catch (err) {
                                   alert("Erro ao processar imagem");
                                 }
@@ -901,6 +933,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       backgroundPosition: backgroundPos,
                       cardImageFit: cardImageFit,
                       heroBanners: heroBanners,
+                      heroBannersMobile: heroBannersMobile,
+                      heroBannersDesktop: heroBannersDesktop,
                       promoActive: promoActive,
                       promoImageUrl: promoImageUrl,
                       promoLink: promoLink,

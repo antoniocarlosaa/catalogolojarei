@@ -4,13 +4,27 @@ interface HeroSearchProps {
     backgroundImageUrl?: string;
     backgroundPosition?: string;
     heroBanners?: string[];
+    heroBannersMobile?: string[];
+    heroBannersDesktop?: string[];
     onViewStock?: () => void;
     onWhatsAppClick?: () => void;
 }
 
-const HeroSearch: React.FC<HeroSearchProps> = ({ backgroundImageUrl, backgroundPosition, heroBanners = [], onViewStock, onWhatsAppClick }) => {
-    const bannerImages = (heroBanners && heroBanners.length > 0 ? heroBanners : backgroundImageUrl ? [backgroundImageUrl] : []).filter(Boolean);
+const HeroSearch: React.FC<HeroSearchProps> = ({ backgroundImageUrl, backgroundPosition, heroBanners = [], heroBannersMobile = [], heroBannersDesktop = [], onViewStock, onWhatsAppClick }) => {
+    const unifiedBannerList = heroBanners?.length
+        ? heroBanners
+        : heroBannersMobile?.length
+            ? heroBannersMobile
+            : heroBannersDesktop?.length
+                ? heroBannersDesktop
+                : [];
+
+    const bannerImages = (unifiedBannerList.length > 0 ? unifiedBannerList : backgroundImageUrl ? [backgroundImageUrl] : []).filter(Boolean);
     const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+
+    useEffect(() => {
+        setActiveBannerIndex(0);
+    }, [unifiedBannerList.join('|')]);
 
     useEffect(() => {
         if (bannerImages.length <= 1) return;

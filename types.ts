@@ -50,6 +50,8 @@ export interface AppSettings {
   backgroundPosition?: string; // e.g. "50% 50%"
   cardImageFit?: 'cover' | 'contain';
   heroBanners?: string[];
+  heroBannersMobile?: string[];
+  heroBannersDesktop?: string[];
   // Configurações do Pop-up
   promoActive?: boolean;
   promoImageUrl?: string;

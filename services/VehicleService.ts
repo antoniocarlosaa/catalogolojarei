@@ -286,9 +286,7 @@ class VehicleService {
       }
 
       const local = this.getFallbackSettings();
-
-      const parsedHeroBanners = (() => {
-        const raw = data?.hero_banners;
+      const parseBannerArray = (raw: unknown) => {
         if (Array.isArray(raw)) return raw.filter(Boolean);
         if (typeof raw === 'string') {
           try {
@@ -298,8 +296,12 @@ class VehicleService {
             return [];
           }
         }
-        return Array.isArray(local.heroBanners) ? local.heroBanners.filter(Boolean) : [];
-      })();
+        return [];
+      };
+
+      const parsedHeroBanners = parseBannerArray(data?.hero_banners);
+      const parsedHeroBannersMobile = parseBannerArray(data?.hero_banners_mobile);
+      const parsedHeroBannersDesktop = parseBannerArray(data?.hero_banners_desktop);
 
       return {
         whatsappNumbers: data?.whatsapp_numbers || local.whatsappNumbers || [],
@@ -307,7 +309,9 @@ class VehicleService {
         backgroundImageUrl: data?.background_image_url || local.backgroundImageUrl || '',
         backgroundPosition: data?.background_position || local.backgroundPosition || '50% 50%',
         cardImageFit: data?.card_image_fit || local.cardImageFit || 'cover',
-        heroBanners: parsedHeroBanners,
+        heroBanners: parsedHeroBanners.length ? parsedHeroBanners : Array.isArray(local.heroBanners) ? local.heroBanners.filter(Boolean) : [],
+        heroBannersMobile: parsedHeroBannersMobile.length ? parsedHeroBannersMobile : parsedHeroBanners.length ? parsedHeroBanners : Array.isArray(local.heroBannersMobile) ? local.heroBannersMobile.filter(Boolean) : [],
+        heroBannersDesktop: parsedHeroBannersDesktop.length ? parsedHeroBannersDesktop : parsedHeroBanners.length ? parsedHeroBanners : Array.isArray(local.heroBannersDesktop) ? local.heroBannersDesktop.filter(Boolean) : [],
         promoActive: data?.promo_active ?? local.promoActive ?? false,
         promoImageUrl: data?.promo_image_url || local.promoImageUrl || '',
         promoLink: data?.promo_link || local.promoLink || '',
@@ -328,7 +332,13 @@ class VehicleService {
     const localData = localStorage.getItem(this.settingsKey);
     if (localData) {
       console.log('Usando configurações do localStorage');
-      return JSON.parse(localData);
+      const parsed = JSON.parse(localData);
+      return {
+        ...parsed,
+        heroBanners: Array.isArray(parsed.heroBanners) ? parsed.heroBanners.filter(Boolean) : [],
+        heroBannersMobile: Array.isArray(parsed.heroBannersMobile) ? parsed.heroBannersMobile.filter(Boolean) : (Array.isArray(parsed.heroBanners) ? parsed.heroBanners.filter(Boolean) : []),
+        heroBannersDesktop: Array.isArray(parsed.heroBannersDesktop) ? parsed.heroBannersDesktop.filter(Boolean) : (Array.isArray(parsed.heroBanners) ? parsed.heroBanners.filter(Boolean) : []),
+      };
     }
     return {
       whatsappNumbers: [],
@@ -337,6 +347,8 @@ class VehicleService {
       backgroundPosition: '50% 50%',
       cardImageFit: 'cover',
       heroBanners: [],
+      heroBannersMobile: [],
+      heroBannersDesktop: [],
       address: 'Rua Principal, 123 - Centro, São Luís - MA',
       schedule: 'Seg a Sex: 08h às 18h | Sáb: 08h às 12h',
       instagramUrl: 'https://instagram.com/reidasmotos',
@@ -350,7 +362,6 @@ class VehicleService {
     localStorage.setItem(this.settingsKey, JSON.stringify(settings));
 
     try {
-      // Primeiro, buscar o ID da configuração existente
       const { data: existing } = await supabase
         .from('settings')
         .select('id')
@@ -358,6 +369,8 @@ class VehicleService {
         .single();
 
       const safeHeroBanners = JSON.stringify(settings.heroBanners || []);
+      const safeHeroBannersMobile = JSON.stringify(settings.heroBannersMobile || []);
+      const safeHeroBannersDesktop = JSON.stringify(settings.heroBannersDesktop || []);
 
       if (existing) {
         const basicPayload = {
@@ -391,10 +404,14 @@ class VehicleService {
         try {
           await supabase
             .from('settings')
-            .update({ hero_banners: safeHeroBanners })
+            .update({
+              hero_banners: safeHeroBanners,
+              hero_banners_mobile: safeHeroBannersMobile,
+              hero_banners_desktop: safeHeroBannersDesktop,
+            })
             .eq('id', existing.id);
         } catch (extraError) {
-          console.warn('Campo hero_banners não está disponível no banco; mantendo em localStorage.', extraError);
+          console.warn('Alguns campos de banner não estão disponíveis no banco; mantendo em localStorage.', extraError);
         }
       } else {
         const insertPayload = {
@@ -412,6 +429,8 @@ class VehicleService {
           instagram_url: settings.instagramUrl,
           footer_text: settings.footerText,
           hero_banners: safeHeroBanners,
+          hero_banners_mobile: safeHeroBannersMobile,
+          hero_banners_desktop: safeHeroBannersDesktop,
         };
 
         try {
@@ -422,7 +441,9 @@ class VehicleService {
           if (error) throw error;
         } catch (insertError) {
           const fallbackError = insertError as Error;
-          if (fallbackError?.message?.includes('hero_banners')) {
+          const hasBannerColumns = fallbackError?.message?.includes('hero_banners') || fallbackError?.message?.includes('hero_banners_mobile') || fallbackError?.message?.includes('hero_banners_desktop');
+
+          if (hasBannerColumns) {
             const { error } = await supabase
               .from('settings')
               .insert([{
@@ -440,15 +461,15 @@ class VehicleService {
                 instagram_url: settings.instagramUrl,
                 footer_text: settings.footerText,
               }]);
+
             if (error) throw error;
-            return;
+          } else {
+            throw insertError;
           }
-          throw insertError;
         }
       }
     } catch (error: any) {
       console.error('Erro ao salvar configurações no Supabase:', error);
-      // RE-THROW erro para que o UI saiba que falhou no servidor
       throw error;
     }
   }

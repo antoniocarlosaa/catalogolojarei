@@ -25,7 +25,9 @@ const App: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>({
     whatsappNumbers: [],
     googleMapsUrl: '',
-    heroBanners: []
+    heroBanners: [],
+    heroBannersMobile: [],
+    heroBannersDesktop: []
   });
   const [loading, setLoading] = useState(true);
   const [visitCount, setVisitCount] = useState(0);
@@ -257,6 +259,8 @@ const App: React.FC = () => {
           backgroundImageUrl={settings.backgroundImageUrl}
           backgroundPosition={settings.backgroundPosition}
           heroBanners={settings.heroBanners || []}
+          heroBannersMobile={settings.heroBannersMobile || []}
+          heroBannersDesktop={settings.heroBannersDesktop || []}
           onViewStock={() => {
             document.getElementById('estoque-section')?.scrollIntoView({ behavior: 'smooth' });
           }}
@@ -519,6 +523,8 @@ const App: React.FC = () => {
           currentBackgroundPosition={settings.backgroundPosition}
           currentCardImageFit={settings.cardImageFit}
           currentHeroBanners={settings.heroBanners || []}
+          currentHeroBannersMobile={settings.heroBannersMobile || []}
+          currentHeroBannersDesktop={settings.heroBannersDesktop || []}
           currentPromoActive={settings.promoActive}
           currentPromoImageUrl={settings.promoImageUrl}
           currentPromoLink={settings.promoLink}
