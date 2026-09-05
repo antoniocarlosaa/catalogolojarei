@@ -302,6 +302,13 @@ class VehicleService {
       const parsedHeroBanners = parseBannerArray(data?.hero_banners);
       const parsedHeroBannersMobile = parseBannerArray(data?.hero_banners_mobile);
       const parsedHeroBannersDesktop = parseBannerArray(data?.hero_banners_desktop);
+      const unifiedHeroBanners = parsedHeroBanners.length
+        ? parsedHeroBanners
+        : parsedHeroBannersMobile.length
+          ? parsedHeroBannersMobile
+          : parsedHeroBannersDesktop.length
+            ? parsedHeroBannersDesktop
+            : Array.isArray(local.heroBanners) ? local.heroBanners.filter(Boolean) : [];
 
       return {
         whatsappNumbers: data?.whatsapp_numbers || local.whatsappNumbers || [],
@@ -309,9 +316,9 @@ class VehicleService {
         backgroundImageUrl: data?.background_image_url || local.backgroundImageUrl || '',
         backgroundPosition: data?.background_position || local.backgroundPosition || '50% 50%',
         cardImageFit: data?.card_image_fit || local.cardImageFit || 'cover',
-        heroBanners: parsedHeroBanners.length ? parsedHeroBanners : Array.isArray(local.heroBanners) ? local.heroBanners.filter(Boolean) : [],
-        heroBannersMobile: parsedHeroBannersMobile.length ? parsedHeroBannersMobile : parsedHeroBanners.length ? parsedHeroBanners : Array.isArray(local.heroBannersMobile) ? local.heroBannersMobile.filter(Boolean) : [],
-        heroBannersDesktop: parsedHeroBannersDesktop.length ? parsedHeroBannersDesktop : parsedHeroBanners.length ? parsedHeroBanners : Array.isArray(local.heroBannersDesktop) ? local.heroBannersDesktop.filter(Boolean) : [],
+        heroBanners: unifiedHeroBanners,
+        heroBannersMobile: unifiedHeroBanners,
+        heroBannersDesktop: unifiedHeroBanners,
         promoActive: data?.promo_active ?? local.promoActive ?? false,
         promoImageUrl: data?.promo_image_url || local.promoImageUrl || '',
         promoLink: data?.promo_link || local.promoLink || '',
@@ -333,11 +340,19 @@ class VehicleService {
     if (localData) {
       console.log('Usando configurações do localStorage');
       const parsed = JSON.parse(localData);
+      const unifiedHeroBanners = Array.isArray(parsed.heroBanners) && parsed.heroBanners.length
+        ? parsed.heroBanners.filter(Boolean)
+        : Array.isArray(parsed.heroBannersMobile) && parsed.heroBannersMobile.length
+          ? parsed.heroBannersMobile.filter(Boolean)
+          : Array.isArray(parsed.heroBannersDesktop) && parsed.heroBannersDesktop.length
+            ? parsed.heroBannersDesktop.filter(Boolean)
+            : [];
+
       return {
         ...parsed,
-        heroBanners: Array.isArray(parsed.heroBanners) ? parsed.heroBanners.filter(Boolean) : [],
-        heroBannersMobile: Array.isArray(parsed.heroBannersMobile) ? parsed.heroBannersMobile.filter(Boolean) : (Array.isArray(parsed.heroBanners) ? parsed.heroBanners.filter(Boolean) : []),
-        heroBannersDesktop: Array.isArray(parsed.heroBannersDesktop) ? parsed.heroBannersDesktop.filter(Boolean) : (Array.isArray(parsed.heroBanners) ? parsed.heroBanners.filter(Boolean) : []),
+        heroBanners: unifiedHeroBanners,
+        heroBannersMobile: unifiedHeroBanners,
+        heroBannersDesktop: unifiedHeroBanners,
       };
     }
     return {
@@ -364,6 +379,14 @@ class VehicleService {
       console.warn('Não foi possível salvar no localStorage:', localError);
     }
 
+    const unifiedHeroBanners = (settings.heroBanners && settings.heroBanners.length
+      ? settings.heroBanners
+      : (settings.heroBannersMobile && settings.heroBannersMobile.length
+        ? settings.heroBannersMobile
+        : settings.heroBannersDesktop || [])).filter(Boolean);
+
+    const normalizedSettings = { ...settings, heroBanners: unifiedHeroBanners, heroBannersMobile: unifiedHeroBanners, heroBannersDesktop: unifiedHeroBanners };
+
     try {
       const { data: existing } = await supabase
         .from('settings')
@@ -371,25 +394,25 @@ class VehicleService {
         .limit(1)
         .single();
 
-      const safeHeroBanners = JSON.stringify(settings.heroBanners || []);
-      const safeHeroBannersMobile = JSON.stringify(settings.heroBannersMobile || []);
-      const safeHeroBannersDesktop = JSON.stringify(settings.heroBannersDesktop || []);
+      const safeHeroBanners = JSON.stringify(normalizedSettings.heroBanners || []);
+      const safeHeroBannersMobile = JSON.stringify(normalizedSettings.heroBannersMobile || []);
+      const safeHeroBannersDesktop = JSON.stringify(normalizedSettings.heroBannersDesktop || []);
 
       if (existing) {
         const basicPayload = {
-          whatsapp_numbers: settings.whatsappNumbers,
-          google_maps_url: settings.googleMapsUrl,
-          background_image_url: settings.backgroundImageUrl,
-          background_position: settings.backgroundPosition,
-          card_image_fit: settings.cardImageFit,
-          promo_active: settings.promoActive,
-          promo_image_url: settings.promoImageUrl,
-          promo_link: settings.promoLink,
-          promo_text: settings.promoText,
-          address: settings.address,
-          schedule: settings.schedule,
-          instagram_url: settings.instagramUrl,
-          footer_text: settings.footerText,
+          whatsapp_numbers: normalizedSettings.whatsappNumbers,
+          google_maps_url: normalizedSettings.googleMapsUrl,
+          background_image_url: normalizedSettings.backgroundImageUrl,
+          background_position: normalizedSettings.backgroundPosition,
+          card_image_fit: normalizedSettings.cardImageFit,
+          promo_active: normalizedSettings.promoActive,
+          promo_image_url: normalizedSettings.promoImageUrl,
+          promo_link: normalizedSettings.promoLink,
+          promo_text: normalizedSettings.promoText,
+          address: normalizedSettings.address,
+          schedule: normalizedSettings.schedule,
+          instagram_url: normalizedSettings.instagramUrl,
+          footer_text: normalizedSettings.footerText,
           updated_at: new Date().toISOString(),
         };
 
@@ -418,19 +441,19 @@ class VehicleService {
         }
       } else {
         const insertPayload = {
-          whatsapp_numbers: settings.whatsappNumbers,
-          google_maps_url: settings.googleMapsUrl,
-          background_image_url: settings.backgroundImageUrl,
-          background_position: settings.backgroundPosition,
-          card_image_fit: settings.cardImageFit,
-          promo_active: settings.promoActive,
-          promo_image_url: settings.promoImageUrl,
-          promo_link: settings.promoLink,
-          promo_text: settings.promoText,
-          address: settings.address,
-          schedule: settings.schedule,
-          instagram_url: settings.instagramUrl,
-          footer_text: settings.footerText,
+          whatsapp_numbers: normalizedSettings.whatsappNumbers,
+          google_maps_url: normalizedSettings.googleMapsUrl,
+          background_image_url: normalizedSettings.backgroundImageUrl,
+          background_position: normalizedSettings.backgroundPosition,
+          card_image_fit: normalizedSettings.cardImageFit,
+          promo_active: normalizedSettings.promoActive,
+          promo_image_url: normalizedSettings.promoImageUrl,
+          promo_link: normalizedSettings.promoLink,
+          promo_text: normalizedSettings.promoText,
+          address: normalizedSettings.address,
+          schedule: normalizedSettings.schedule,
+          instagram_url: normalizedSettings.instagramUrl,
+          footer_text: normalizedSettings.footerText,
           hero_banners: safeHeroBanners,
           hero_banners_mobile: safeHeroBannersMobile,
           hero_banners_desktop: safeHeroBannersDesktop,
@@ -450,19 +473,19 @@ class VehicleService {
             const { error } = await supabase
               .from('settings')
               .insert([{
-                whatsapp_numbers: settings.whatsappNumbers,
-                google_maps_url: settings.googleMapsUrl,
-                background_image_url: settings.backgroundImageUrl,
-                background_position: settings.backgroundPosition,
-                card_image_fit: settings.cardImageFit,
-                promo_active: settings.promoActive,
-                promo_image_url: settings.promoImageUrl,
-                promo_link: settings.promoLink,
-                promo_text: settings.promoText,
-                address: settings.address,
-                schedule: settings.schedule,
-                instagram_url: settings.instagramUrl,
-                footer_text: settings.footerText,
+                whatsapp_numbers: normalizedSettings.whatsappNumbers,
+                google_maps_url: normalizedSettings.googleMapsUrl,
+                background_image_url: normalizedSettings.backgroundImageUrl,
+                background_position: normalizedSettings.backgroundPosition,
+                card_image_fit: normalizedSettings.cardImageFit,
+                promo_active: normalizedSettings.promoActive,
+                promo_image_url: normalizedSettings.promoImageUrl,
+                promo_link: normalizedSettings.promoLink,
+                promo_text: normalizedSettings.promoText,
+                address: normalizedSettings.address,
+                schedule: normalizedSettings.schedule,
+                instagram_url: normalizedSettings.instagramUrl,
+                footer_text: normalizedSettings.footerText,
               }]);
 
             if (error) throw error;

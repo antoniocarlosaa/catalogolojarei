@@ -199,15 +199,26 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   useEffect(() => {
-    setHeroBanners(currentHeroBanners || []);
+    const unified = (currentHeroBanners || []).filter(Boolean);
+    setHeroBanners(unified);
+    setHeroBannersMobile(unified);
+    setHeroBannersDesktop(unified);
   }, [currentHeroBanners]);
 
   useEffect(() => {
-    setHeroBannersMobile(currentHeroBannersMobile || []);
+    const unified = (currentHeroBannersMobile || []).filter(Boolean);
+    if (unified.length > 0 && unified.length !== heroBanners.length) {
+      setHeroBanners(unified);
+      setHeroBannersDesktop(unified);
+    }
   }, [currentHeroBannersMobile]);
 
   useEffect(() => {
-    setHeroBannersDesktop(currentHeroBannersDesktop || []);
+    const unified = (currentHeroBannersDesktop || []).filter(Boolean);
+    if (unified.length > 0 && unified.length !== heroBanners.length) {
+      setHeroBanners(unified);
+      setHeroBannersMobile(unified);
+    }
   }, [currentHeroBannersDesktop]);
 
   const handleAddBannerImages = async (files: FileList | null, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
@@ -233,7 +244,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         })
       );
 
-      setter(prev => [...prev, ...uploadedUrls].slice(0, 8));
+      const nextList = [...(Array.isArray(heroBanners) ? heroBanners : []), ...uploadedUrls].slice(0, 8);
+      setter(nextList);
+      setHeroBannersMobile(nextList);
+      setHeroBannersDesktop(nextList);
     } catch (error: any) {
       console.error('Erro ao enviar banner:', error);
       const message = error?.message || 'Não foi possível enviar a imagem do banner.';
@@ -947,15 +961,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       return;
                     }
 
+                    const unifiedBanners = heroBanners.filter(Boolean);
                     await onSaveSettings({
                       whatsappNumbers: numbers,
                       googleMapsUrl: mapsUrl,
                       backgroundImageUrl: backgroundImageUrl,
                       backgroundPosition: backgroundPos,
                       cardImageFit: cardImageFit,
-                      heroBanners: heroBanners,
-                      heroBannersMobile: heroBannersMobile,
-                      heroBannersDesktop: heroBannersDesktop,
+                      heroBanners: unifiedBanners,
+                      heroBannersMobile: unifiedBanners,
+                      heroBannersDesktop: unifiedBanners,
                       promoActive: promoActive,
                       promoImageUrl: promoImageUrl,
                       promoLink: promoLink,
